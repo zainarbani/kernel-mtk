@@ -265,4 +265,5 @@ enum {
 	HWSIM_VQ_RX,
 	HWSIM_NUM_VQS,
 };
+
 #endif /* __MAC80211_HWSIM_H */
