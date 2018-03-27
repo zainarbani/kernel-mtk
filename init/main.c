@@ -935,11 +935,14 @@ static void __init do_initcalls(void)
 {
 	int level;
 
-	for (level = 0; level < ARRAY_SIZE(initcall_levels) - 1; level++)
+	for (level = 0; level < ARRAY_SIZE(initcall_levels) - 1; level++) {
 		do_initcall_level(level);
 #ifdef CONFIG_MTK_RAM_CONSOLE
-	aee_rr_rec_last_init_func(~(unsigned long)(0));
+		aee_rr_rec_last_init_func(~(unsigned long)(0));
 #endif
+		/* finish all async calls before going into next level */
+		async_synchronize_full();
+	}
 }
 
 /*
