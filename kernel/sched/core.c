@@ -33,6 +33,8 @@
 #include <linux/smp.h>
 #include <linux/timer.h>
 
+#include <linux/kthread.h>
+
 #include <asm/switch_to.h>
 #include <asm/tlb.h>
 #ifdef CONFIG_PARAVIRT
@@ -4181,18 +4183,23 @@ static struct rq *finish_task_switch(struct task_struct *prev)
 		INIT_WORK(&mm->async_put_work, mmdrop_async_free);
 		queue_work(system_unbound_wq, &mm->async_put_work);
 	}
-	if (unlikely(prev_state == TASK_DEAD)) {
-		if (prev->sched_class->task_dead)
-			prev->sched_class->task_dead(prev);
+	if (unlikely(prev_state & (TASK_DEAD|TASK_PARKED))) {
+		switch (prev_state) {
+		case TASK_DEAD:
+			if (prev->sched_class->task_dead)
+				prev->sched_class->task_dead(prev);
 
-		/*
-		 * Remove function-return probe instances associated with this
-		 * task and put them back on the free list.
-		 */
-		kprobe_flush_task(prev);
+			/*
+			 * Remove function-return probe instances associated with this
+			 * task and put them back on the free list.
+			 */
+			kprobe_flush_task(prev);
 
-		/* Task is done with its stack. */
-		finish_task_switch_dead(prev);
+			finish_task_switch_dead(prev);
+		case TASK_PARKED:
+			kthread_park_complete(prev);
+			break;
+		}
 	}
 
 	tick_nohz_task_switch();
