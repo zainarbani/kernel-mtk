@@ -4183,9 +4183,7 @@ static struct rq *finish_task_switch(struct task_struct *prev)
 		INIT_WORK(&mm->async_put_work, mmdrop_async_free);
 		queue_work(system_unbound_wq, &mm->async_put_work);
 	}
-	if (unlikely(prev_state & (TASK_DEAD|TASK_PARKED))) {
-		switch (prev_state) {
-		case TASK_DEAD:
+	if (unlikely(prev_state  == TASK_DEAD)) {
 			if (prev->sched_class->task_dead)
 				prev->sched_class->task_dead(prev);
 
@@ -4196,10 +4194,6 @@ static struct rq *finish_task_switch(struct task_struct *prev)
 			kprobe_flush_task(prev);
 
 			finish_task_switch_dead(prev);
-		case TASK_PARKED:
-			kthread_park_complete(prev);
-			break;
-		}
 	}
 
 	tick_nohz_task_switch();
