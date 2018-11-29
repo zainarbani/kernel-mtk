@@ -93,23 +93,17 @@ void __init_rwsem(struct rw_semaphore *sem, const char *name,
 	sem->owner = NULL;
 	osq_lock_init(&sem->osq);
 #endif
+
 #ifdef CONFIG_MTK_TASK_TURBO
 	sem->turbo_owner = NULL;
+#endif
+
+#ifdef CONFIG_RWSEM_PRIO_AWARE
+	sem->m_count = 0;
 #endif
 }
 
 EXPORT_SYMBOL(__init_rwsem);
-
-enum rwsem_waiter_type {
-	RWSEM_WAITING_FOR_WRITE,
-	RWSEM_WAITING_FOR_READ
-};
-
-struct rwsem_waiter {
-	struct list_head list;
-	struct task_struct *task;
-	enum rwsem_waiter_type type;
-};
 
 enum rwsem_wake_type {
 	RWSEM_WAKE_ANY,		/* Wake whatever's at head of wait list */
@@ -257,6 +251,7 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 	long count, adjustment = -RWSEM_ACTIVE_READ_BIAS;
 	struct rwsem_waiter waiter;
 	DEFINE_WAKE_Q(wake_q);
+	bool is_first_waiter = false;
 
 	waiter.task = current;
 	waiter.type = RWSEM_WAITING_FOR_READ;
@@ -267,7 +262,8 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 #ifdef CONFIG_MTK_TASK_TURBO
 	rwsem_list_add(waiter.task, &waiter.list, &sem->wait_list);
 #else
-	list_add_tail(&waiter.list, &sem->wait_list);
+	/* is_first_waiter == true means we are first in the queue */
+	is_first_waiter = rwsem_list_add_per_prio(&waiter, sem);
 #endif
 
 	/* we're now waiting on the lock, but no longer actively locking */
@@ -281,7 +277,8 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 	 */
 	if (count == RWSEM_WAITING_BIAS ||
 	    (count > RWSEM_WAITING_BIAS &&
-	     adjustment != -RWSEM_ACTIVE_READ_BIAS))
+	     (adjustment != -RWSEM_ACTIVE_READ_BIAS ||
+	     is_first_waiter)))
 		__rwsem_mark_wake(sem, RWSEM_WAKE_ANY, &wake_q);
 
 #ifdef CONFIG_MTK_TASK_TURBO
@@ -535,6 +532,7 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 	struct rwsem_waiter waiter;
 	struct rw_semaphore *ret = sem;
 	DEFINE_WAKE_Q(wake_q);
+	bool is_first_waiter = false;
 
 	/* undo write bias from down_write operation, stop active locking */
 	count = atomic_long_sub_return(RWSEM_ACTIVE_WRITE_BIAS, &sem->count);
@@ -559,7 +557,11 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 #ifdef CONFIG_MTK_TASK_TURBO
 	rwsem_list_add(waiter.task, &waiter.list, &sem->wait_list);
 #else
-	list_add_tail(&waiter.list, &sem->wait_list);
+	/*
+	 * is_first_waiter == true means we are first in the queue,
+	 * so there is no read locks that were queued ahead of us.
+	 */
+	is_first_waiter = rwsem_list_add_per_prio(&waiter, sem);
 #endif
 
 	/* we're now waiting on the lock, but no longer actively locking */
@@ -571,7 +573,7 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 		 * no active writers, the lock must be read owned; so we try to
 		 * wake any read locks that were queued ahead of us.
 		 */
-		if (count > RWSEM_WAITING_BIAS) {
+		if (!is_first_waiter && count > RWSEM_WAITING_BIAS) {
 			__rwsem_mark_wake(sem, RWSEM_WAKE_READERS, &wake_q);
 			/*
 			 * The wakeup is normally called _after_ the wait_lock
