@@ -10355,6 +10355,8 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	 */
 	mutex_init(&hba->rpmb_lock);
 
+	device_enable_async_suspend(dev);
+
 	return 0;
 
 out_remove_scsi_host:
