@@ -8350,8 +8350,14 @@ out:
 static void ufshcd_async_scan(void *data, async_cookie_t cookie)
 {
 	struct ufs_hba *hba = (struct ufs_hba *)data;
+	int ret, retry = 3;
 
-	ufshcd_probe_hba(hba);
+	ret = ufshcd_probe_hba(hba);
+	while (ret && retry) {
+		pr_err("%s failed. Err = %d. Retry %d\n", __func__, ret, retry);
+		ret = ufshcd_host_reset_and_restore(hba);
+		retry--;
+	}
 }
 
 /**
@@ -8403,7 +8409,6 @@ static int ufshcd_ioctl(struct scsi_device *dev, int cmd, void __user *buffer)
 			__func__, cmd);
 		break;
 	}
-
 	return err;
 }
 
