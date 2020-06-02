@@ -7267,8 +7267,12 @@ static int ufshcd_host_reset_and_restore(struct ufs_hba *hba)
 	ufshcd_scale_clks(hba, true);
 
 	err = ufshcd_hba_enable(hba);
-	if (err)
+	if (err) {
+		/* ufshcd_probe_hba() will put it */
+		if (!ufshcd_eh_in_progress(hba) && !hba->pm_op_in_progress)
+			pm_runtime_put_sync(hba->dev);
 		goto out;
+	}
 
 	/* Establish the link again and restore the device */
 	err = ufshcd_probe_hba(hba);
@@ -7301,6 +7305,9 @@ static int ufshcd_reset_and_restore(struct ufs_hba *hba)
 		ufshcd_vops_device_reset(hba);
 
 		ufshcd_device_reset_log(hba);
+
+		if (!ufshcd_eh_in_progress(hba) && !hba->pm_op_in_progress)
+			pm_runtime_get_sync(hba->dev);
 
 		err = ufshcd_host_reset_and_restore(hba);
 	} while (err && --retries);
