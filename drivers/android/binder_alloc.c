@@ -348,7 +348,7 @@ static inline struct vm_area_struct *binder_alloc_get_vma(
 	return vma;
 }
 
-static void debug_low_async_space_locked(struct binder_alloc *alloc, int pid)
+static bool debug_low_async_space_locked(struct binder_alloc *alloc, int pid)
 {
 	/*
 	 * Find the amount and size of buffers allocated by the current caller;
@@ -361,7 +361,6 @@ static void debug_low_async_space_locked(struct binder_alloc *alloc, int pid)
 	struct binder_buffer *buffer;
 	size_t total_alloc_size = 0;
 	size_t num_buffers = 0;
-	struct task_struct *debug_task;
 
 	for (n = rb_first(&alloc->allocated_buffers); n != NULL;
 		 n = rb_next(n)) {
@@ -376,45 +375,20 @@ static void debug_low_async_space_locked(struct binder_alloc *alloc, int pid)
 	}
 
 	/*
-	 * Warn if this pid has more than 100 transactions, or more than 50% of
-	 * async space (which is 25% of total buffer size).
+	 * Warn if this pid has more than 50 transactions, or more than 50% of
+	 * async space (which is 25% of total buffer size). Oneway spam is only
+	 * detected when the threshold is exceeded.
 	 */
-	if (num_buffers > 100 || total_alloc_size > alloc->buffer_size / 4) {
-
-		/* trigger aee kernel exception and get native backtrace */
-		debug_task = get_pid_task(find_vpid(pid), PIDTYPE_PID);
-		if (debug_task) {
-			bool is_netd = false;
-			struct task_struct *t;
-
-			/* trigger aee exception for netd only */
-			if (strstr(debug_task->comm, "Binder:")) {
-				for_each_thread(debug_task, t)
-					if (strcmp(t->comm, "netd") == 0) {
-						is_netd = true;
-						break;
-					}
-			}
-
-			if (!is_netd) {
-				put_task_struct(debug_task);
-				return;
-			}
-
-			binder_alloc_debug(BINDER_DEBUG_USER_ERROR,
-			     "%d: pid %d comm %s spamming oneway? %zd buffers allocated for a total size of %zd\n",
-			      alloc->pid, pid, debug_task->comm, num_buffers, total_alloc_size);
-
-/* #if IS_ENABLED(CONFIG_MTK_AEE_FEATURE)
- *			aee_kernel_exception_api(__FILE__, __LINE__,
- *				DB_OPT_DEFAULT | DB_OPT_NATIVE_BACKTRACE,
- *				"[binder_low_async]",
- *				"\nCRDISPATCH_KEY:netd binder issue");
- * #endif
- */
-			put_task_struct(debug_task);
+	if (num_buffers > 50 || total_alloc_size > alloc->buffer_size / 4) {
+		binder_alloc_debug(BINDER_DEBUG_USER_ERROR,
+			     "%d: pid %d spamming oneway? %zd buffers allocated for a total size of %zd\n",
+			      alloc->pid, pid, num_buffers, total_alloc_size);
+		if (!alloc->oneway_spam_detected) {
+			alloc->oneway_spam_detected = true;
+			return true;
 		}
 	}
+	return false;
 }
 
 static struct binder_buffer *binder_alloc_new_buf_locked(
@@ -563,6 +537,7 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 	buffer->async_transaction = is_async;
 	buffer->extra_buffers_size = extra_buffers_size;
 	buffer->pid = pid;
+	buffer->oneway_spam_suspect = false;
 	if (is_async) {
 		alloc->free_async_space -= size + sizeof(struct binder_buffer);
 		binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC_ASYNC,
@@ -575,7 +550,9 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 			 * of async space left (which is less than 10% of total
 			 * buffer size).
 			 */
-			debug_low_async_space_locked(alloc, pid);
+			buffer->oneway_spam_suspect = debug_low_async_space_locked(alloc, pid);
+		} else {
+			alloc->oneway_spam_detected = false;
 		}
 	}
 	return buffer;
