@@ -54,58 +54,23 @@ endif
 
         ifneq (,$(filter $(CONFIG_MTK_COMBO_CHIP), "CONSYS_6877"))
             export MTK_COMBO_CHIP=CONNAC2X2_SOC5_0
-            PATH_TO_WMT_DRV      = vendor/mediatek/kernel_modules/connectivity/conninfra
             export CONNAC_VER=2_0
         else ifneq (,$(filter $(CONFIG_MTK_COMBO_CHIP), "CONSYS_6885" "CONSYS_6893"))
             export MTK_COMBO_CHIP=CONNAC2X2_SOC3_0
-            PATH_TO_WMT_DRV      = vendor/mediatek/kernel_modules/connectivity/conninfra
             export CONNAC_VER=2_0
         else ifneq (,$(filter $(CONFIG_MTK_COMBO_CHIP), "CONSYS_6833"))
             export MTK_COMBO_CHIP=SOC2_1X1
-            PATH_TO_WMT_DRV      = vendor/mediatek/kernel_modules/connectivity/common
             export CONNAC_VER=1_0
         else ifneq (,$(filter $(CONFIG_MTK_COMBO_CHIP), "CONSYS_6779" "CONSYS_6873" "CONSYS_6853"))
             export MTK_COMBO_CHIP=SOC2_2X2
-            PATH_TO_WMT_DRV      = vendor/mediatek/kernel_modules/connectivity/common
             export CONNAC_VER=1_0
         else
             export MTK_COMBO_CHIP=CONNAC
-            PATH_TO_WMT_DRV      = vendor/mediatek/kernel_modules/connectivity/common
             export CONNAC_VER=1_0
         endif
 
         export MTK_PLATFORM_WMT=$(MTK_PLATFORM)
         export TARGET_BOARD_PLATFORM_WMT=$(patsubst CONSYS_%,mt%,$(subst ",,$(CONFIG_MTK_COMBO_CHIP)))
-
-        PATH_TO_WLAN_CHR_DRV = vendor/mediatek/kernel_modules/connectivity/wlan/adaptor
-        PATH_TO_WLAN_DRV     = vendor/mediatek/kernel_modules/connectivity/wlan/core/gen4m
-
-        ABS_PATH_TO_WMT_DRV      = $(srctree)/../$(PATH_TO_WMT_DRV)
-        ABS_PATH_TO_WLAN_CHR_DRV = $(srctree)/../$(PATH_TO_WLAN_CHR_DRV)
-        ABS_PATH_TO_WLAN_DRV     = $(srctree)/../$(PATH_TO_WLAN_DRV)
-
-        # check wlan driver folder
-        ifeq (,$(wildcard $(ABS_PATH_TO_WMT_DRV)))
-            $(error $(ABS_PATH_TO_WMT_DRV) is not existed)
-        endif
-        ifeq (,$(wildcard $(ABS_PATH_TO_WLAN_CHR_DRV)))
-            $(error $(ABS_PATH_TO_WLAN_CHR_DRV) is not existed)
-        endif
-        ifeq (,$(wildcard $(ABS_PATH_TO_WLAN_DRV)))
-            $(error $(ABS_PATH_TO_WLAN_DRV) is not existed)
-        endif
-
-        $(warning symbolic link to $(PATH_TO_WMT_DRV))
-        $(warning symbolic link to $(PATH_TO_WLAN_CHR_DRV))
-        $(warning symbolic link to $(PATH_TO_WLAN_DRV))
-
-        $(shell unlink $(srctree)/$(src)/wmt_drv)
-        $(shell unlink $(srctree)/$(src)/wmt_chrdev_wifi)
-        $(shell unlink $(srctree)/$(src)/wlan_drv_gen4m)
-
-        $(shell ln -s $(ABS_PATH_TO_WMT_DRV)      $(srctree)/$(src)/wmt_drv)
-        $(shell ln -s $(ABS_PATH_TO_WLAN_CHR_DRV) $(srctree)/$(src)/wmt_chrdev_wifi)
-        $(shell ln -s $(ABS_PATH_TO_WLAN_DRV)     $(srctree)/$(src)/wlan_drv_gen4m)
 
         # for gen4m options
         export CONFIG_MTK_COMBO_WIFI_HIF=axi
@@ -133,9 +98,6 @@ endif
         # Do build-in for xxx.c checking
         subdir-ccflags-y += -D MTK_WCN_REMOVE_KERNEL_MODULE
         subdir-ccflags-y += -D MTK_WCN_BUILT_IN_DRIVER
-        obj-y += wmt_drv/
-        obj-y += wmt_chrdev_wifi/
-        obj-y += wlan_drv_gen4m/
 
         obj-$(CONFIG_MTK_COMBO) += common/
         obj-$(CONFIG_MTK_COMBO_WIFI) += wlan/adaptor/
