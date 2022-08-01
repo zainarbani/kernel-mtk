@@ -186,9 +186,7 @@ UINT32 PanelMaster_get_TE_status(UINT32 dsi_idx);
 void PanelMaster_DSI_set_timing(UINT32 dsi_index, struct MIPI_TIMING timing);
 unsigned int PanelMaster_set_PM_enable(unsigned int value);
 unsigned int PanelMaster_is_enable(void);
-UINT32 DSI_dcs_read_lcm_reg_via_bdg(enum DISP_MODULE_ENUM module,
-			       struct cmdqRecStruct *cmdq, UINT8 cmd,
-			       UINT8 *buffer, UINT8 buffer_size);
+
 UINT32 DSI_dcs_read_lcm_reg_v2(enum DISP_MODULE_ENUM module,
 			       struct cmdqRecStruct *cmdq, UINT8 cmd,
 			       UINT8 *buffer, UINT8 buffer_size);
@@ -213,11 +211,7 @@ void DSI_ForceConfig(int forceconfig);
 int DSI_set_roi(int x, int y);
 int DSI_check_roi(void);
 int ddp_dsi_trigger(enum DISP_MODULE_ENUM module, void *cmdq);
-void set_deskew_status(unsigned int value);
 void DSI_set_cmdq_V2(enum DISP_MODULE_ENUM module, struct cmdqRecStruct *cmdq,
-		    unsigned int cmd, unsigned char count,
-		    unsigned char *para_list, unsigned char force_update);
-void DSI_send_cmdq_to_bdg(enum DISP_MODULE_ENUM module, struct cmdqRecStruct *cmdq,
 		    unsigned int cmd, unsigned char count,
 		    unsigned char *para_list, unsigned char force_update);
 void DSI_set_cmdq_V4(enum DISP_MODULE_ENUM module, bool hs,
@@ -240,11 +234,6 @@ int ddp_dsi_write_lcm_cmdq(enum DISP_MODULE_ENUM module,
 			struct cmdqRecStruct *cmdq,
 			unsigned char cmd, unsigned char count,
 			unsigned char *para_list);
-enum DSI_STATUS DSI_Start(enum DISP_MODULE_ENUM module,
-	struct cmdqRecStruct *cmdq);
-enum DSI_STATUS DSI_Stop(enum DISP_MODULE_ENUM module,
-	struct cmdqRecStruct *cmdq);
-enum DSI_STATUS DSI_Reset(enum DISP_MODULE_ENUM module, struct cmdqRecStruct *cmdq);
 
 #ifdef CONFIG_MTK_HIGH_FRAME_RATE
 /*-------------------------------DynFPS start------------------------------*/
@@ -265,4 +254,5 @@ void DSI_dynfps_send_cmd(
 #ifdef __cplusplus
 }
 #endif
+
 #endif /* __DSI_DRV_H__ */

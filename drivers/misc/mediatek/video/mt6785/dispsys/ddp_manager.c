@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -33,8 +34,6 @@
 
 #include "ddp_log.h"
 #include "disp_drv_platform.h"
-#include "ddp_dsi.h"
-#include "ddp_disp_bdg.h"
 
 /* #define __GED_NOTIFICATION_SUPPORT__ */
 #ifdef __GED_NOTIFICATION_SUPPORT__
@@ -1304,13 +1303,6 @@ int dpmgr_path_trigger(disp_path_handle dp_handle, void *trigger_loop_handle,
 	int *list;
 	int m_num, m;
 	int i;
-	char para[7] = {0x10, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
-	char para1[7] = {0x10, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00};
-	char para2[7] = {0x50, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
-	char para3[7] = {0x50, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00};
-	char para4[7] = {0x10, 0x02, 0x00, 0x3c, 0x00, 0x00, 0x00};
-	char para5[7] = {0x1d, 0x02, 0x00, 0x09, 0x39, 0x2c, 0x00};
-	char para6[7] = {0x10, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00};
 	struct DDP_MODULE_DRIVER *m_drv;
 
 	ASSERT(dp_handle);
@@ -1323,24 +1315,6 @@ int dpmgr_path_trigger(disp_path_handle dp_handle, void *trigger_loop_handle,
 	list = ddp_get_scenario_list(phandle->scenario);
 	m_num = ddp_get_module_num(phandle->scenario);
 
-	if (bdg_is_bdg_connected() == 1) {
-		if (get_mt6382_init() && (get_bdg_tx_mode() == CMD_MODE)) {
-			DSI_send_cmdq_to_bdg(DISP_MODULE_DSI0, trigger_loop_handle,
-						0x90, 7, para4, 1);
-			DSI_send_cmdq_to_bdg(DISP_MODULE_DSI0, trigger_loop_handle,
-						0x00, 7, para5, 1);
-			DSI_send_cmdq_to_bdg(DISP_MODULE_DSI0, trigger_loop_handle,
-						0x60, 7, para6, 1);
-			DSI_send_cmdq_to_bdg(DISP_MODULE_DSI0, trigger_loop_handle,
-						0x00, 7, para, 1);
-			DSI_send_cmdq_to_bdg(DISP_MODULE_DSI0, trigger_loop_handle,
-						0x00, 7, para1, 1);
-			DSI_send_cmdq_to_bdg(DISP_MODULE_DSI0, trigger_loop_handle,
-						0x20, 7, para2, 1);
-			DSI_send_cmdq_to_bdg(DISP_MODULE_DSI0, trigger_loop_handle,
-						0x20, 7, para3, 1);
-		}
-	}
 	ddp_mutex_enable(phandle->hwmutexid, phandle->scenario, phandle->mode,
 			 trigger_loop_handle);
 	for (i = 0; i < m_num; i++) {
@@ -1599,7 +1573,9 @@ static int is_module_in_path(enum DISP_MODULE_ENUM module,
 
 	return 0;
 }
-
+#ifdef CONFIG_ADB_WRITE_PARAM_FEATURE
+extern int primary_display_set_panel_param(unsigned int param);
+#endif
 int dpmgr_path_user_cmd(disp_path_handle dp_handle, unsigned int msg,
 			unsigned long arg, void *cmdqhandle)
 {
@@ -1676,6 +1652,13 @@ int dpmgr_path_user_cmd(disp_path_handle dp_handle, unsigned int msg,
 		ret = disp_color_ioctl(DISP_MODULE_COLOR0, msg, arg,
 				       cmdqhandle);
 		break;
+#ifdef CONFIG_ADB_WRITE_PARAM_FEATURE
+	case DISP_IOCTL_SET_PANEL_PARAM:
+		{
+			primary_display_set_panel_param(arg);
+			break;
+		}
+#endif
 	default:
 		DISP_LOG_W("%s io not supported\n", __func__);
 		break;

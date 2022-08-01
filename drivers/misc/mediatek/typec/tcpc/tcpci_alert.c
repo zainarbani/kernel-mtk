@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * TCPC Interface for alert handler
  *
@@ -475,7 +476,7 @@ static inline int tcpci_set_wake_lock_pd(
 	return 0;
 }
 
-static inline int tcpci_report_usb_port_attached(struct tcpc_device *tcpc)
+int tcpci_report_usb_port_attached(struct tcpc_device *tcpc)
 {
 	TCPC_INFO("usb_port_attached\r\n");
 
@@ -511,14 +512,22 @@ static inline int tcpci_report_usb_port_attached(struct tcpc_device *tcpc)
 #endif	/* CONFIG_USB_PD_DISABLE_PE */
 
 	/* MTK Only */
-	if (tcpc->pd_inited_flag)
+	if (tcpc->pd_inited_flag) {
+#ifdef CONFIG_TYPEC_WAIT_BC12
+		if (tcpc->typec_attach_new == TYPEC_ATTACHED_SNK)
+			tcpc_enable_timer(tcpc, TYPEC_RT_TIMER_SINK_WAIT_BC12);
+		else
+			pd_put_cc_attached_event(tcpc, tcpc->typec_attach_new);
+#else
 		pd_put_cc_attached_event(tcpc, tcpc->typec_attach_new);
+#endif
+	}
 #endif /* CONFIG_USB_POWER_DLEIVERY */
 
 	return 0;
 }
 
-static inline int tcpci_report_usb_port_detached(struct tcpc_device *tcpc)
+int tcpci_report_usb_port_detached(struct tcpc_device *tcpc)
 {
 	TCPC_INFO("usb_port_detached\r\n");
 

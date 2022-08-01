@@ -280,11 +280,7 @@ int mdw_sched_dev_routine(void *arg)
 
 		/* construct cmd hnd */
 		mdw_queue_boost(sc);
-		if (cmd_parser->set_hnd(sc, d->idx, &h)) {
-			mdw_drv_err("cmd(0x%llx-#%d) set hnd fail\n",
-				sc->parent->kid, sc->idx);
-			goto next;
-		}
+		cmd_parser->set_hnd(sc, d->idx, &h);
 
 		mdw_trace_begin("dev(%s-%d) exec|sc(0x%llx-%d) boost(%d/%u)",
 			d->name, d->idx, sc->parent->kid, sc->idx,
@@ -314,9 +310,6 @@ int mdw_sched_dev_routine(void *arg)
 		sc->driver_time = mdw_cmn_get_time_diff(&sc->ts_start,
 			&sc->ts_end);
 		mdw_sched_trace(sc, d, &h, ret, 1);
-
-		/* clr hnd */
-		cmd_parser->clr_hnd(sc, &h);
 
 		/* count qos end */
 		mutex_lock(&sc->mtx);

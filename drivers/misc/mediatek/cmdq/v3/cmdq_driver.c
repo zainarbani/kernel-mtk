@@ -158,7 +158,7 @@ static const struct file_operations cmdqDebugInstructionCountOp = {
 };
 #endif
 
-void cmdq_driver_dump_readback(u32 *ids, u32 *addrs, u32 count, u32 *values)
+void cmdq_driver_dump_readback(u32 *addrs, u32 count, u32 *values)
 {}
 
 static int cmdq_open(struct inode *pInode, struct file *pFile)
@@ -442,8 +442,7 @@ static long cmdq_driver_create_secure_medadata(
 	/* always clear to prevent free unknown memory */
 	pCommand->secData.addrMetadatas = 0;
 	for (i = 0; i < ARRAY_SIZE(pCommand->secData.ispMeta.ispBufs); i++) {
-		isp_bufs[i] = (void *)(unsigned long)
-			pCommand->secData.ispMeta.ispBufs[i].va;
+		isp_bufs[i] = (void *)pCommand->secData.ispMeta.ispBufs[i].va;
 		pCommand->secData.ispMeta.ispBufs[i].va = 0;
 	}
 

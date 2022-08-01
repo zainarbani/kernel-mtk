@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 //
 // Copyright (c) 2018 MediaTek Inc.
+// Copyright (C) 2021 XiaoMi, Inc.
 
 #include <linux/delay.h>
 #include <linux/module.h>
@@ -159,7 +160,7 @@ static int dsp_pcm_dev_probe(struct platform_device *pdev)
 		pr_info("%s of_node->name:%s fullname:%s\n", __func__,
 			pdev->dev.of_node->name, pdev->dev.of_node->full_name);
 	}
-
+    pdev->name = pdev->dev.kobj.name; 
 	ret = snd_soc_register_platform(&pdev->dev, &mtk_dsp_pcm_platform);
 	if (ret) {
 		dev_warn(&pdev->dev, "err_platform\n");

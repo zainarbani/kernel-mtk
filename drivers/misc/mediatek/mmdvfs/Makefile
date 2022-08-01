@@ -32,7 +32,6 @@ SUPPORT_USE_DDR_TYPE := true
 SUPPORT_MMP := true
 FORCE_STEP0 := false
 BUILD_MMDVFS := true
-ccflags-y += -DAUTOK_FORCE_LOW
 else ifneq (,$(filter $(CONFIG_MTK_PLATFORM), "mt6765"))
 SUPPORT_MMP := true
 FORCE_STEP0 := false
@@ -47,7 +46,6 @@ ccflags-y += -DSMI_TAL
 SUPPORT_MMP := true
 FORCE_STEP0 := false
 BUILD_MMDVFS := true
-ccflags-y += -DAUTOK_FORCE_LOW
 else ifneq (,$(filter $(CONFIG_MTK_PLATFORM), "mt6739"))
 BUILD_MMDVFS := true
 else ifneq (,$(filter $(CONFIG_MTK_PLATFORM), "mt6785"))
@@ -59,7 +57,6 @@ SKIP_SMI_CONFIG := false
 QOS_BOUND_DETECT := true
 FORCE_STEP0 := false
 ccflags-y += -DCHECK_VOLTAGE
-ccflags-y += -I$(srctree)/drivers/misc/mediatek/video/include
 else ifneq (,$(filter $(CONFIG_MTK_PLATFORM), "mt6885" "mt6893"))
 BUILD_MMDVFS := true
 HRT_MECHANISM := true

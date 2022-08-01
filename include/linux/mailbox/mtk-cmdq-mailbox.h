@@ -14,8 +14,6 @@
 #if !IS_ENABLED(CONFIG_MTK_CMDQ_MBOX_EXT)
 #define cmdq_util_msg(f, args...) cmdq_msg(f, ##args)
 #define cmdq_util_err(f, args...) cmdq_dump(f, ##args)
-#define cmdq_util_user_msg(chan, f, args...) cmdq_util_msg(f, ##args)
-#define cmdq_util_user_err(chan, f, args...) cmdq_util_err(f, ##args)
 #endif
 
 /* see also gce platform binding header */
@@ -144,10 +142,6 @@ struct cmdq_pkt {
 #endif
 #endif	/* end of CONFIG_MTK_CMDQ_MBOX_EXT */
 	bool			task_alloc;
-#if defined(CONFIG_MTK_MT6382_BDG)
-	void			*bdg_data;
-	bool			reuse;
-#endif
 };
 
 struct cmdq_thread {

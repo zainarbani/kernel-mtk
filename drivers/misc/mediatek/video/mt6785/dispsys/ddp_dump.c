@@ -444,7 +444,7 @@ void dump_reg_row(unsigned long baddr, unsigned long offset, unsigned int count)
 			len += snprintf(buf + len, buf_len - len,
 					"0x%08x", val);
 		else
-			len += snprintf(buf + len, buf_len - len, "0x%08x", val);
+			len += snprintf(buf + len, buf_len - len, "%10x", val);
 
 		if (i < count - 1)
 			len += snprintf(buf + len, buf_len - len, " ");
@@ -452,7 +452,7 @@ void dump_reg_row(unsigned long baddr, unsigned long offset, unsigned int count)
 			len += snprintf(buf + len, buf_len - len, "\n");
 	}
 
-	DISPINFO("%s", buf);
+	DDPDUMP("%s", buf);
 }
 
 static void mutex_dump_reg(void)

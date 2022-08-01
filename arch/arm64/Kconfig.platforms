@@ -725,7 +725,7 @@ config MACH_MT6893
 	select CRYPTO_SHA2_ARM64_CE
 	select CRYPTO_AES_ARM64_CE_BLK
 	select MTK_ES_REG
-	select MEDIATEK_CQDMA
+	select MTK_CQDMA
 	select MTK_DBGTOP
 	select MTK_BOUNCING_CHECK if MTK_AEE_FEATURE
 	select MTK_TIMER_SYSTIMER
@@ -734,6 +734,7 @@ config MACH_MT6893
 	select MTK_LPM
 	select MTK_LOW_POWER_MODULE
 	select MTK_LPM_MT6885
+	select MTK_SWPM if !FPGA_EARLY_PORTING
 	select COMMON_CLK_MT6885
 	select DEVAPC_MT6885
 	select DEVMPU_MT6885
@@ -758,8 +759,6 @@ config MACH_MT6893
 	select HW_RANDOM_MT67XX
 	select ARM64_ERRATUM_1542418
 	select MTK_CPU_KORO
-	select MTK_DEBUG_TRACER
-	select MTK_BUS_TRACER
         help
 	  This enables support for MediaTek MT6893
 	  Support for aarch64 Architecture

@@ -10,8 +10,16 @@ obj-y   +=  tpd_debug.o
 obj-y   +=  tpd_default.o
 obj-y   +=  tpd_misc.o
 obj-y   +=  tpd_setting.o
+
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_info.o
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_selftest.o
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_work.o
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_gesture.o
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_grip_area.o
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_palm.o
+obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  xiaomi/
 obj-$(CONFIG_TOUCHSCREEN_MTK_SOLOMON)	+=  SOLOMON/
-obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  focaltech_touch/
+# obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  focaltech_touch/
 obj-$(CONFIG_TOUCHSCREEN_MTK_GT1151)	+=  GT1151/
 obj-$(CONFIG_TOUCHSCREEN_MTK_GT911)	+=  GT911/
 obj-$(CONFIG_TOUCHSCREEN_MTK_GSLX680)	+=  gslX680/
@@ -22,3 +30,7 @@ obj-$(CONFIG_TOUCHSCREEN_MTK_GT5688)	+=  GT5688/
 obj-$(CONFIG_TOUCHSCREEN_HIMAX_I2C)	+=  hxchipset/
 obj-$(CONFIG_TOUCHSCREEN_MTK_FOCALTECH_FHD)	+=  focaltech_fhd_touch/
 obj-$(CONFIG_TOUCHSCREEN_MTK_GT9157)    +=  GT9157/
+obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  ft3418_i2c/
+
+obj-$(CONFIG_TOUCHSCREEN_GOODIX_GTX8) += goodix_gtx8/
+obj-$(CONFIG_TOUCHSCREEN_NT36XXX_HOSTDL_SPI) += nt36xxx_spi/

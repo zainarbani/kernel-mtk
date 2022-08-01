@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (c) 2018 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #include <linux/kernel.h>
@@ -34,9 +35,6 @@
 #if IS_ENABLED(CONFIG_MMPROFILE)
 #include "cmdq_mmp.h"
 #endif
-
-#include <linux/of_platform.h>
-#include "cmdq-bdg.h"
 
 #define CMDQ_GET_COOKIE_CNT(thread) \
 	(CMDQ_REG_GET32(CMDQ_THR_EXEC_CNT(thread)) & CMDQ_MAX_COOKIE_VALUE)
@@ -259,7 +257,8 @@ bool cmdq_core_check_user_valid(void *src, u32 size)
 
 	mutex_unlock(&cmdq_inst_check_mutex);
 
-	cost = div_u64(sched_clock() - cost, 1000);
+	cost = sched_clock() - cost;
+	do_div(cost, 1000);
 
 	CMDQ_MSG("%s size:%u cost:%lluus ret:%s\n", __func__, size, (u64)cost,
 		ret ? "true" : "false");
@@ -1415,14 +1414,7 @@ int cmdq_core_print_status_seq(struct seq_file *m, void *v)
 			handle->sram_base);
 
 		client = cmdq_clients[(u32)handle->thread];
-#if defined(CONFIG_MTK_MT6382_BDG)
-		if (CMDQ_BDG_TASK(handle->thread))
-			cmdq_bdg_client_get_irq(client, &irq);
-		else
-			cmdq_task_get_thread_irq(client->chan, &irq);
-#else
 		cmdq_task_get_thread_irq(client->chan, &irq);
-#endif
 
 		seq_printf(m,
 			"Scenario:%d Priority:%d Flag:0x%llx va end:0x%p IRQ:0x%x\n",
@@ -2541,7 +2533,7 @@ ssize_t cmdq_core_print_error(struct device *dev,
 		i++) {
 		struct ErrorStruct *pError = &cmdq_ctx.error[i];
 		u64 ts = pError->ts_nsec;
-		unsigned long rem_nsec = (unsigned long)div_u64(ts, 1000000000);
+		unsigned long rem_nsec = do_div(ts, 1000000000);
 
 		length += snprintf(buf + length,
 			PAGE_SIZE - length, "[%5lu.%06lu] ",
@@ -2956,14 +2948,7 @@ static void cmdq_core_parse_handle_error(const struct cmdqRecStruct *handle,
 
 	/* fill output parameter */
 	*moduleName = module ? module : "CMDQ";
-#if defined(CONFIG_MTK_MT6382_BDG)
-	if (CMDQ_BDG_TASK(handle->thread))
-		cmdq_bdg_client_get_irq(client, flag);
-	else
-		cmdq_task_get_thread_irq(client->chan, flag);
-#else
 	cmdq_task_get_thread_irq(client->chan, flag);
-#endif
 	if (pc_va)
 		*pc_va = cmdq_core_get_pc_va(curr_pc, handle);
 }
@@ -3326,18 +3311,9 @@ static void cmdq_core_attach_cmdq_error(
 	CMDQ_ERR("============== [CMDQ] Begin of Error %d =============\n",
 		cmdq_ctx.errNum);
 
-#if defined(CONFIG_MTK_MT6382_BDG)
-	if (CMDQ_BDG_TASK(handle->thread))
-		cmdq_bdg_dump_handle((void *)handle, "ERR");
-	else {
-		cmdq_core_dump_handle_summary(
-			handle, thread, &nghandle, nginfo_out);
-		cmdq_core_dump_error_handle(handle, thread, pc_out);
-	}
-#else
 	cmdq_core_dump_handle_summary(handle, thread, &nghandle, nginfo_out);
 	cmdq_core_dump_error_handle(handle, thread, pc_out);
-#endif
+
 
 	CMDQ_ERR("============== [CMDQ] End of Error %d =============\n",
 		 cmdq_ctx.errNum);
@@ -4957,6 +4933,9 @@ s32 cmdq_pkt_wait_flush_ex_result(struct cmdqRecStruct *handle)
 			break;
 		}
 
+		/* tick mailbox see to make pending task run */
+		mbox_client_txdone(cmdq_clients[(u32)handle->thread]->chan, 0);
+
 		if (waitq)
 			break;
 
@@ -4965,15 +4944,6 @@ s32 cmdq_pkt_wait_flush_ex_result(struct cmdqRecStruct *handle)
 			"===== SW timeout Pre-dump %d handle:0x%p pkt:0x%p thread:%d state:%d =====\n",
 			count, handle, handle->pkt, handle->thread,
 			handle->state);
-
-#if defined(CONFIG_MTK_MT6382_BDG)
-		if (CMDQ_BDG_TASK(handle->thread)) {
-			cmdq_bdg_dump_handle((void *)handle, "INFO");
-			count += 1;
-			continue;
-		}
-#endif
-
 		cmdq_core_dump_status("INFO");
 		cmdq_core_dump_pc(handle, handle->thread, "INFO");
 		cmdq_core_dump_thread(handle, handle->thread, true, "INFO");
@@ -5319,10 +5289,6 @@ s32 cmdq_helper_mbox_register(struct device *dev)
 	u32 i;
 	s32 chan_id;
 	struct cmdq_client *clt;
-#if defined(CONFIG_MTK_MT6382_BDG)
-	struct device_node *node;
-	struct platform_device *pdev;
-#endif
 
 #ifdef CMDQ_SECURE_PATH_SUPPORT
 	u32 sec_thread[2] = {0};
@@ -5343,7 +5309,7 @@ s32 cmdq_helper_mbox_register(struct device *dev)
 		clt = cmdq_mbox_create(dev, i);
 		if (!clt || IS_ERR(clt)) {
 			CMDQ_LOG("register mbox stop:0x%p idx:%u\n", clt, i);
-			break;
+			continue;
 		}
 
 #ifdef CMDQ_SECURE_PATH_SUPPORT
@@ -5376,28 +5342,6 @@ s32 cmdq_helper_mbox_register(struct device *dev)
 				cmdq_clients[chan_id]->chan->mbox->dev);
 	}
 
-#if defined(CONFIG_MTK_MT6382_BDG)
-	node = of_parse_phandle(dev->of_node, "gce_mbox_bdg", 0);
-	pdev = of_find_device_by_node(node);
-	of_node_put(node);
-
-	CMDQ_LOG("%s: node:%p pdev:%p dev:%p MAX_THREAD_COUNT:%d\n",
-		__func__, node, pdev, &pdev->dev, CMDQ_MAX_THREAD_COUNT);
-
-	for (i = 0; i < CMDQ_MAX_THREAD_COUNT; i++) {
-		clt = cmdq_mbox_create(&pdev->dev, i);
-		if (!clt || IS_ERR(clt)) {
-			CMDQ_LOG("%s:cmdq_mbox_create clt:%p err:%d",
-				__func__, clt, PTR_ERR(clt));
-			break;
-		}
-
-		chan_id = cmdq_mbox_chan_id(clt->chan);
-		cmdq_clients[BIT(5) | chan_id] = clt;
-		CMDQ_LOG("%s: i:%d chan_id:%d clt:%p",
-			__func__, i, BIT(5) | chan_id, cmdq_clients[chan_id]);
-	}
-#endif
 	cmdq_client_base = cmdq_register_device(dev);
 
 	/* for mm like mdp set large pool count */

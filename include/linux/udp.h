@@ -50,8 +50,7 @@ struct udp_sock {
 	__u8		 encap_type;	/* Is this an Encapsulation socket? */
 	unsigned char	 no_check6_tx:1,/* Send zero UDP6 checksums on TX? */
 			 no_check6_rx:1,/* Allow zero UDP6 checksums on RX? */
-			 gro_enabled:1,	/* Can accept GRO packets */
-			 gro_disabled:3; /* Disable udp gro for special socket case */
+			 gro_enabled:1;	/* Can accept GRO packets */
 	/*
 	 * Following member retains the information to create a UDP header
 	 * when the socket is uncorked.

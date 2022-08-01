@@ -24,9 +24,6 @@
 #include <linux/slab.h>
 #include <linux/delay.h>
 #include <linux/sched/clock.h>
-#if defined(CONFIG_MACH_MT6785)
-#include "mtkfb.h"
-#endif
 
 #ifdef PLL_HOPPING_READY
 #include <mtk_freqhopping_drv.h>
@@ -2211,12 +2208,7 @@ int mmdvfs_qos_force_step(int step)
 		pr_notice("force set step invalid: %d\n", step);
 		return -EINVAL;
 	}
-	pr_notice("%s, force set step: %d->%d\n", __func__, force_step, step);
 	force_step = step;
-#if defined(CONFIG_MACH_MT6785)
-	if (mtkfb_is_bdg_connected() == 1)
-		force_step = 0;
-#endif
 	update_step(PM_QOS_NUM_CLASSES, -1);
 	return 0;
 }
@@ -2246,11 +2238,7 @@ void mmdvfs_autok_qos_enable(bool enable)
 {
 	pr_notice("%s: step_size=%d current_max_step=%d\n",
 		__func__, step_size, current_max_step);
-	if (!enable && step_size > 0
-#ifndef AUTOK_FORCE_LOW
-		&& current_max_step == STEP_UNREQUEST
-#endif
-	)
+	if (!enable && step_size > 0 && current_max_step == STEP_UNREQUEST)
 		mmdvfs_qos_force_step(step_size - 1);
 
 	mmdvfs_autok_enable = enable;

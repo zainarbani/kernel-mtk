@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -208,10 +209,8 @@ enum LCM_LANE_NUM {
 
 enum LCM_DSI_FORMAT {
 	LCM_DSI_FORMAT_RGB565 = 0,
-	LCM_DSI_FORMAT_RGB666_LOOSELY = 1,
-	LCM_DSI_FORMAT_RGB666 = 2,
-	LCM_DSI_FORMAT_RGB888 = 3,
-	LCM_DSI_FORMAT_RGB101010 = 4,
+	LCM_DSI_FORMAT_RGB666 = 1,
+	LCM_DSI_FORMAT_RGB888 = 2
 };
 
 
@@ -384,9 +383,8 @@ struct LCM_UFOE_CONFIG_PARAMS {
 /* ------------------------------------------------------------------------- */
 
 struct LCM_DSC_CONFIG_PARAMS {
-	unsigned int ver; /* [7:4] major [3:0] minor */
 	unsigned int slice_width;
-
+	unsigned int slice_hight;
 	unsigned int bit_per_pixel;
 	unsigned int slice_mode;
 	unsigned int rgb_swap;
@@ -395,10 +393,7 @@ struct LCM_DSC_CONFIG_PARAMS {
 	unsigned int bit_per_channel;
 	unsigned int rct_on;
 	unsigned int bp_enable;
-	unsigned int pic_height;/* need to check */
-	unsigned int pic_width;/* need to check */
-	unsigned int slice_height;
-	unsigned int chunk_size;
+
 	unsigned int dec_delay;
 	unsigned int xmit_delay;
 	unsigned int scale_value;
@@ -413,12 +408,7 @@ struct LCM_DSC_CONFIG_PARAMS {
 
 	unsigned int flatness_minqp;
 	unsigned int flatness_maxqp;
-	unsigned int rc_model_size;
-	unsigned int rc_edge_factor;
-	unsigned int rc_quant_incr_limit0;
-	unsigned int rc_quant_incr_limit1;
-	unsigned int rc_tgt_offset_hi;
-	unsigned int rc_tgt_offset_lo;
+	unsigned int rc_mode1_size;
 };
 
 
@@ -543,12 +533,6 @@ struct dynamic_fps_info {
 	unsigned int fps;
 	unsigned int vfp; /*lines*/
 	/*unsigned int idle_check_interval;*//*ms*/
-};
-
-struct vsync_trigger_time {
-	unsigned int fps;
-	unsigned int trigger_after_te;
-	unsigned int config_expense_time;
 };
 
 
@@ -685,7 +669,6 @@ struct LCM_DSI_PARAMS {
 	unsigned int PLL_CLOCK;
 	/* data_rate = PLL_CLOCK x 2 */
 	unsigned int data_rate;
-	unsigned int ap_data_rate;
 	unsigned int PLL_CK_VDO;
 	unsigned int PLL_CK_CMD;
 	unsigned int dsi_clock;
@@ -695,8 +678,6 @@ struct LCM_DSI_PARAMS {
 	unsigned int cont_clock;
 	unsigned int ufoe_enable;
 	unsigned int dsc_enable;
-	unsigned int bdg_dsc_enable;
-	unsigned int bdg_ssc_disable;
 	struct LCM_UFOE_CONFIG_PARAMS ufoe_params;
 	struct LCM_DSC_CONFIG_PARAMS dsc_params;
 	unsigned int edp_panel;
@@ -758,7 +739,6 @@ struct LCM_DSI_PARAMS {
 	/*for ARR*/
 	unsigned int dynamic_fps_levels;
 	struct dynamic_fps_info dynamic_fps_table[DYNAMIC_FPS_LEVELS];
-	struct vsync_trigger_time vsync_after_te[DFPS_LEVELS];
 
 #ifdef CONFIG_MTK_HIGH_FRAME_RATE
 	/****DynFPS start****/
@@ -814,9 +794,6 @@ struct LCM_PARAMS {
 	unsigned int min_luminance;
 	unsigned int average_luminance;
 	unsigned int max_luminance;
-
-	unsigned int hbm_en_time;
-	unsigned int hbm_dis_time;
 
 #ifdef CONFIG_MTK_HIGH_FRAME_RATE
 	enum LCM_Send_Cmd_Mode sendmode;
@@ -1007,7 +984,7 @@ struct LCM_DRIVER {
 	void (*init)(void);
 	void (*suspend)(void);
 	void (*resume)(void);
-
+	void (*set_disp_param)(unsigned int param);
 	/* for power-on sequence refinement */
 	void (*init_power)(void);
 	void (*suspend_power)(void);
@@ -1054,12 +1031,6 @@ struct LCM_DRIVER {
 	void (*set_pwm_for_mix)(int enable);
 
 	void (*aod)(int enter);
-
-
-	bool (*get_hbm_state)(void);
-	bool (*get_hbm_wait)(void);
-	bool (*set_hbm_wait)(bool wait);
-	bool (*set_hbm_cmdq)(bool en, void *qhandle);
 
 	/* /////////////DynFPS///////////////////////////// */
 	void (*dfps_send_lcm_cmd)(void *cmdq_handle,

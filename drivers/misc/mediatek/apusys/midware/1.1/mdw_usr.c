@@ -35,7 +35,7 @@
 #include "mdw_fence.h"
 
 #define MDW_CMD_DEFAULT_TIMEOUT (30*1000) //30s
-#define MDW_CMD_MAX (32)
+
 
 struct mdw_usr_stat {
 	struct list_head list;
@@ -277,8 +277,9 @@ static void mdw_usr_dump_mem(struct seq_file *s, struct mdw_usr *u)
 
 static void mdw_usr_dump_cmd(struct seq_file *s, struct mdw_usr *u)
 {
-	int cnt = 0, id = 0;
+	int cnt = 0;
 	struct mdw_apu_cmd *c;
+	struct list_head *tmp = NULL, *list_ptr = NULL;
 
 	mdw_con_info(s, "|%-10s|%-13s|%-33s|%-33s|%-20s|\n",
 		" cmd",
@@ -287,8 +288,9 @@ static void mdw_usr_dump_cmd(struct seq_file *s, struct mdw_usr *u)
 		" id",
 		" sc num");
 	mdw_con_info(s, LINEBAR);
-
-	idr_for_each_entry(&u->cmds_idr, c, id) {
+	list_for_each_safe(list_ptr, tmp, &u->cmd_list) {
+		c = list_entry(list_ptr,
+			struct mdw_apu_cmd, u_item);
 		mutex_lock(&c->mtx);
 
 		mdw_con_info(s,
@@ -301,7 +303,6 @@ static void mdw_usr_dump_cmd(struct seq_file *s, struct mdw_usr *u)
 		mutex_unlock(&c->mtx);
 		cnt++;
 	}
-
 	mdw_con_info(s, LINEBAR);
 }
 
@@ -499,24 +500,17 @@ int mdw_usr_mem_free(struct apusys_mem *um, struct mdw_usr *u)
 {
 	struct list_head *tmp = NULL, *list_ptr = NULL;
 	struct mdw_mem *mm = NULL;
-	int ret = 0;
 
 	/* get mem from usr list */
 	mutex_lock(&u->mtx);
 	list_for_each_safe(list_ptr, tmp, &u->mem_list) {
 		mm = list_entry(list_ptr, struct mdw_mem, u_item);
-		if (mm->kmem.fd == um->fd &&
-			mm->kmem.mem_type == um->mem_type &&
-			mm->kmem.uidr == um->khandle) {
-			mdw_mem_debug("get_fd(%d)type(%d)kd(%llx)idr(%d)\n",
-				mm->kmem.fd, mm->kmem.mem_type,
-				mm->kmem.khandle, mm->kmem.uidr);
 
-			ret = mdw_mem_u2k_handle(&mm->kmem, um);
-			if (ret)
-				break;
+		if (mm->kmem.fd == um->fd &&
+			mm->kmem.mem_type == um->mem_type) {
+			mdw_flw_debug("get mem fd(%d) type(%d)\n",
+				mm->kmem.fd, mm->kmem.mem_type);
 			list_del(&mm->u_item);
-			mdw_mem_delete_idr(um->khandle);
 			break;
 		}
 		mm = NULL;
@@ -524,9 +518,6 @@ int mdw_usr_mem_free(struct apusys_mem *um, struct mdw_usr *u)
 
 	if (mm)
 		u->iova_size = u->iova_size - mm->kmem.iova_size;
-	else
-		mdw_mem_debug("Not found fd(%d) type(%d) khandle(%llx)\n",
-				um->fd, um->mem_type, um->khandle);
 
 	mutex_unlock(&u->mtx);
 
@@ -848,12 +839,6 @@ int mdw_usr_run_cmd_async(struct mdw_usr *u, struct apusys_ioctl_cmd *in)
 	int ret = 0;
 	struct mdw_apu_cmd *c = NULL;
 
-	/* check offset to avoid oob */
-	if (in->offset) {
-		mdw_drv_err("don't support offset(%u)\n", in->offset);
-		return -EINVAL;
-	}
-
 	c = cmd_parser->create_cmd(in->mem_fd, in->size, in->offset, u);
 	if (!c) {
 		ret = -EINVAL;
@@ -863,23 +848,15 @@ int mdw_usr_run_cmd_async(struct mdw_usr *u, struct apusys_ioctl_cmd *in)
 	c->tgid = u->tgid;
 	c->usr = u;
 
+	in->cmd_id = c->kid;
+
 	ret = mdw_usr_par_apu_cmd(c);
 	if (ret)
 		goto parse_cmd_fail;
 
 	mutex_lock(&u->mtx);
-	c->id = idr_alloc(&u->cmds_idr, c, 1, MDW_CMD_MAX, GFP_KERNEL);
-	if (c->id <= 0) {
-		mdw_drv_err("alloc cmd idr fail\n");
-		ret = -EFAULT;
-		mutex_unlock(&u->mtx);
-		goto parse_cmd_fail;
-	}
+	list_add_tail(&c->u_item, &u->cmd_list);
 	mutex_unlock(&u->mtx);
-
-	mdw_flw_debug("cmd id(0x%llx/0x%llx/%d)\n",
-		c->hdr->uid, c->kid, c->id);
-	in->cmd_id = (unsigned long long)c->id;
 
 	goto out;
 
@@ -890,7 +867,7 @@ out:
 	return ret;
 }
 
-int mdw_wait_cmd(struct mdw_usr *u, struct mdw_apu_cmd *c)
+int mdw_wait_cmd(struct mdw_apu_cmd *c)
 {
 	int ret = 0, retry = 100, retry_time = 50;
 	unsigned long timeout = 0;
@@ -930,10 +907,9 @@ rewait:
 
 	/* Remove u_item anyway */
 	mutex_lock(&c->usr->mtx);
-	if (c->file && c->file->private_data) {
-		kfree(c->file->private_data);
+	list_del(&c->u_item);
+	if (c->file)
 		c->file->private_data = NULL;
-	}
 	mutex_unlock(&c->usr->mtx);
 
 	if (ret < 0) { /* Wait fail handle */
@@ -955,22 +931,31 @@ rewait:
 int mdw_usr_wait_cmd(struct mdw_usr *u, struct apusys_ioctl_cmd *in)
 {
 	struct mdw_apu_cmd *c = NULL;
+	struct list_head *tmp = NULL, *list_ptr = NULL;
+
+	mdw_flw_debug("\n");
 
 	/* get mem from usr list */
 	mutex_lock(&u->mtx);
-	c = idr_find(&u->cmds_idr, in->cmd_id);
-	if (c)
-		idr_remove(&u->cmds_idr, c->id);
+	list_for_each_safe(list_ptr, tmp, &u->cmd_list) {
+		c = list_entry(list_ptr, struct mdw_apu_cmd, u_item);
+		mdw_flw_debug("cmd(0x%llx/0x%llx) matching...\n",
+			c->kid, in->cmd_id);
+
+		if (c->kid == in->cmd_id)
+			break;
+
+		c = NULL;
+	}
 	mutex_unlock(&u->mtx);
 
 	if (!c) {
 		mdw_drv_err("no cmd(0x%llx) to wait\n", in->cmd_id);
 		return -EINVAL;
 	}
-	mdw_flw_debug("wait cmd(0x%llx/0x%llx/%d)\n",
-		c->hdr->uid, c->kid, c->id);
+	mdw_flw_debug("wait cmd(0x%llx/0x%llx)\n", c->kid, c->hdr->uid);
 
-	return mdw_wait_cmd(u, c);
+	return mdw_wait_cmd(c);
 }
 
 int mdw_usr_run_cmd_sync(struct mdw_usr *u, struct apusys_ioctl_cmd *in)
@@ -995,10 +980,10 @@ struct mdw_usr *mdw_usr_create(void)
 	if (!u)
 		return NULL;
 
+	INIT_LIST_HEAD(&u->cmd_list);
 	INIT_LIST_HEAD(&u->sdev_list);
 	INIT_LIST_HEAD(&u->mem_list);
 	mutex_init(&u->mtx);
-	idr_init(&u->cmds_idr);
 	get_task_comm(u->comm, current);
 	u->pid = current->pid;
 	u->tgid = current->tgid;
@@ -1043,14 +1028,13 @@ void mdw_usr_destroy(struct kref *kref)
 	struct mdw_mem *mm = NULL;
 	struct mdw_apu_cmd *c = NULL;
 	struct mdw_dev_info *d = NULL;
-	uint64_t sbmp = 0;
-	int nd_type = 0, id = 0;
 
 	mutex_lock(&u_mgr.mtx);
 	mutex_lock(&u->mtx);
 
-	idr_for_each_entry(&u->cmds_idr, c, id) {
-		idr_remove(&u->cmds_idr, id);
+	list_for_each_safe(list_ptr, tmp, &u->cmd_list) {
+		c = list_entry(list_ptr, struct mdw_apu_cmd, u_item);
+		list_del(&c->u_item);
 		mdw_drv_warn("residual cmd(0x%llx)\n", c->kid);
 		cmd_parser->abort_cmd(c);
 	}
@@ -1059,28 +1043,18 @@ void mdw_usr_destroy(struct kref *kref)
 		mm = list_entry(list_ptr, struct mdw_mem, u_item);
 		list_del(&mm->u_item);
 		mdw_drv_warn("residual mem(0x%x)\n", mm->kmem.iova);
-		mdw_mem_delete_idr(mm->kmem.uidr);
 		mdw_usr_mem_delete(mm);
 	}
 
 	list_for_each_safe(list_ptr, tmp, &u->sdev_list) {
 		d = list_entry(list_ptr, struct mdw_dev_info, u_item);
-		if (d->type >= APUSYS_DEVICE_MAX) {
-			mdw_drv_err("known device type(%d)\n", d->type);
-			continue;
-		}
-		/* disable secure mode */
-		nd_type = d->type % APUSYS_DEVICE_RT;
-		if (!((1ULL << nd_type) & sbmp)) {
-			sbmp |= (1ULL << nd_type);
-			d->sec_off(d);
-			mdw_drv_warn("dev(%d/%d) sec off\n", nd_type, d->type);
-		}
 		list_del(&d->u_item);
 		mdw_drv_warn("residual dev(%s%d)\n", d->name, d->idx);
 		d->pwr_off(d);
 		mdw_rsc_put_dev(d);
 	}
+	if (d)
+		d->sec_off(d);
 
 	mutex_unlock(&u->mtx);
 	list_del(&u->m_item);

@@ -3,6 +3,7 @@
  *
  * This code is based on drivers/scsi/ufs/ufshcd.c
  * Copyright (C) 2011-2013 Samsung India Software Operations
+ * Copyright (C) 2021 XiaoMi, Inc.
  * Copyright (c) 2013-2016, The Linux Foundation. All rights reserved.
  *
  * Authors:
@@ -251,28 +252,6 @@ static struct ufs_dev_fix ufs_fixups[] = {
 	UFS_FIX(UFS_VENDOR_SKHYNIX, UFS_ANY_MODEL,
 		UFS_DEVICE_QUIRK_LIMITED_RPMB_MAX_RW_SIZE),
 	UFS_FIX(UFS_VENDOR_MICRON, UFS_ANY_MODEL,
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28S8D301DMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28S9Q301CMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28SAO301MMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28S8Y401DMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28S9X401CMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H28SAW401MMR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ21AFAMZDAR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ21AECMZDAR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ15AFAMADAR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ15AECMADAR",
-		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
-	UFS_FIX(UFS_VENDOR_SKHYNIX, "H9HQ15ACPMADAR",
 		UFS_DEVICE_QUIRK_VCC_OFF_DELAY),
 
 	/* MTK PATCH */
@@ -3768,7 +3747,26 @@ static int ufshcd_read_device_desc(struct ufs_hba *hba, u8 *buf, u32 size)
 /* MTK PATCH */
 int ufshcd_read_health_desc(struct ufs_hba *hba, u8 *buf, u32 size)
 {
-	return ufshcd_read_desc(hba, QUERY_DESC_IDN_HEALTH, 0, buf, size);
+		return ufshcd_read_desc(hba, QUERY_DESC_IDN_HEALTH, 0, buf, size);
+	}
+
+	/**
+	 * struct uc_string_id - unicode string
+	 *
+	 * @len: size of this descriptor inclusive
+	 * @type: descriptor type
+	 * @uc: unicode string character
+	 */
+	struct uc_string_id {
+		u8 len;
+		u8 type;
+		wchar_t uc[0];
+	} __packed;
+
+	/* replace non-printable or non-ASCII characters with spaces */
+static inline char ufshcd_remove_non_printable_mi(u8 ch)
+{
+	return (ch >= 0x20 && ch <= 0x7e) ? ch : ' ';
 }
 EXPORT_SYMBOL(ufshcd_read_health_desc);
 
@@ -3786,36 +3784,41 @@ EXPORT_SYMBOL(ufshcd_read_health_desc);
 static int ufshcd_read_string_desc(struct ufs_hba *hba, int desc_index,
 				   u8 *buf, u32 size, bool ascii)
 {
-	int err = 0;
+	struct uc_string_id *uc_str;
+	u8 *str;
+	int ret,err=0;
+
+	if (!buf)
+		return -EINVAL;
+
+	uc_str = kzalloc(QUERY_DESC_MAX_SIZE, GFP_KERNEL);
+	if (!uc_str)
+		return -ENOMEM;
 
 	err = ufshcd_read_desc(hba,
-				QUERY_DESC_IDN_STRING, desc_index, buf, size);
+				QUERY_DESC_IDN_STRING, desc_index, (u8 *)uc_str, size);
 
 	if (err) {
 		dev_err(hba->dev, "%s: reading String Desc failed after %d retries. err = %d\n",
 			__func__, QUERY_REQ_RETRIES, err);
 		goto out;
 	}
+	if (uc_str->len <= QUERY_DESC_HDR_SIZE) {
+		dev_dbg(hba->dev, "String Desc is of zero length\n");
+		str = NULL;
+		ret = 0;
+		goto out;
+	}
+
 
 	if (ascii) {
-		int desc_len;
-		int ascii_len;
+		ssize_t ascii_len;
 		int i;
-		char *buff_ascii;
-
-		desc_len = buf[0];
 		/* remove header and divide by 2 to move from UTF16 to UTF8 */
-		ascii_len = (desc_len - QUERY_DESC_HDR_SIZE) / 2 + 1;
-		if (size < ascii_len + QUERY_DESC_HDR_SIZE) {
-			dev_err(hba->dev, "%s: buffer allocated size is too small\n",
-					__func__);
-			err = -ENOMEM;
-			goto out;
-		}
-
-		buff_ascii = kzalloc(ascii_len, GFP_KERNEL);
-		if (!buff_ascii) {
-			err = -ENOMEM;
+		ascii_len = (uc_str->len - QUERY_DESC_HDR_SIZE) / 2 + 1;
+		str = kzalloc(ascii_len, GFP_KERNEL);
+		if (!str) {
+			ret = -ENOMEM;
 			goto out;
 		}
 
@@ -3823,21 +3826,31 @@ static int ufshcd_read_string_desc(struct ufs_hba *hba, int desc_index,
 		 * the descriptor contains string in UTF16 format
 		 * we need to convert to utf-8 so it can be displayed
 		 */
-		utf16s_to_utf8s((wchar_t *)&buf[QUERY_DESC_HDR_SIZE],
-				desc_len - QUERY_DESC_HDR_SIZE,
-				UTF16_BIG_ENDIAN, buff_ascii, ascii_len);
+		ret = utf16s_to_utf8s(uc_str->uc,
+				      uc_str->len - QUERY_DESC_HDR_SIZE,
+				      UTF16_BIG_ENDIAN, str, ascii_len);
 
 		/* replace non-printable or non-ASCII characters with spaces */
-		for (i = 0; i < ascii_len; i++)
-			ufshcd_remove_non_printable(&buff_ascii[i]);
+		for (i = 0; i < ret; i++)
+			str[i] = ufshcd_remove_non_printable_mi(str[i]);
 
-		memset(buf + QUERY_DESC_HDR_SIZE, 0,
-				size - QUERY_DESC_HDR_SIZE);
-		memcpy(buf + QUERY_DESC_HDR_SIZE, buff_ascii, ascii_len);
-		buf[QUERY_DESC_LENGTH_OFFSET] = ascii_len + QUERY_DESC_HDR_SIZE;
-		kfree(buff_ascii);
+		str[ret++] = '\0';
+
+	} else {
+		str = kmemdup(uc_str, uc_str->len, GFP_KERNEL);
+		if (!str) {
+			ret = -ENOMEM;
+			goto out;
+		}
+		ret = uc_str->len;
 	}
 out:
+	if (str) {
+		memset(buf,0,sizeof(buf));
+		memcpy(buf, str, ret);
+		kfree(str);
+	}
+	kfree(uc_str);
 	return err;
 }
 
@@ -4821,9 +4834,7 @@ static inline void ufshcd_hba_stop(struct ufs_hba *hba, bool can_sleep)
 int ufshcd_hba_enable(struct ufs_hba *hba)
 {
 	int retry;
-	bool retry_reset = false;
 
-hba_retry:
 	/*
 	 * msleep of 1 and 5 used in this function might result in msleep(20),
 	 * but it was necessary to send the UFS FPGA to reset mode during
@@ -4867,12 +4878,7 @@ hba_retry:
 			ufs_mtk_pltfrm_host_sw_rst(hba,
 				SW_RST_TARGET_UFSHCI |
 				SW_RST_TARGET_UFSCPT | SW_RST_TARGET_UNIPRO);
-			/* try again after sw reset */
-			if (!retry_reset) {
-				retry_reset = true;
-				goto hba_retry;
-			} else
-				return -EIO;
+			return -EIO;
 		}
 		usleep_range(1000, 1100);
 	}
@@ -8870,14 +8876,6 @@ out:
 static void ufshcd_vreg_set_lpm(struct ufs_hba *hba)
 {
 	/*
-	 * Some device need VCC off delay but host cannot provide this delay
-	 * VCC always on to save these kind of device.
-	 */
-	if ((hba->quirks & UFSHCD_QUIRK_UFS_VCC_ALWAYS_ON) &&
-	    (hba->dev_quirks & UFS_DEVICE_QUIRK_VCC_OFF_DELAY))
-		return;
-
-	/*
 	 * It seems some UFS devices may keep drawing more than sleep current
 	 * (atleast for 500us) from UFS rails (especially from VCCQ rail).
 	 * To avoid this situation, add 2ms delay before putting these UFS
@@ -8914,14 +8912,6 @@ static void ufshcd_vreg_set_lpm(struct ufs_hba *hba)
 static int ufshcd_vreg_set_hpm(struct ufs_hba *hba)
 {
 	int ret = 0;
-
-	/*
-	 * Some device need VCC off delay but host cannot provide this delay
-	 * VCC always on to save these kind of device.
-	 */
-	if ((hba->quirks & UFSHCD_QUIRK_UFS_VCC_ALWAYS_ON) &&
-	    (hba->dev_quirks & UFS_DEVICE_QUIRK_VCC_OFF_DELAY))
-		goto out;
 
 	if (ufshcd_is_ufs_dev_poweroff(hba) && ufshcd_is_link_off(hba) &&
 	    !hba->dev_info.is_lu_power_on_wp) {
@@ -9119,11 +9109,7 @@ static int ufshcd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 	ufshcd_set_reg_state(hba, UFS_REG_SUSPEND_SET_LPM); /* MTK PATCH */
 	ufshcd_vreg_set_lpm(hba);
 
-	/*
-	 * Some device need VCC off delay and host can provide this delay
-	 */
-	if (!(hba->quirks & UFSHCD_QUIRK_UFS_VCC_ALWAYS_ON) &&
-	    (hba->dev_quirks & UFS_DEVICE_QUIRK_VCC_OFF_DELAY))
+	if (hba->dev_quirks & UFS_DEVICE_QUIRK_VCC_OFF_DELAY)
 		mdelay(5);
 
 disable_clks:

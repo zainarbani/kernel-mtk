@@ -438,14 +438,10 @@ static int ccu_open(struct inode *inode, struct file *flip)
 	int ret = 0, i;
 
 	struct ccu_user_s *user;
-
-	mutex_lock(&g_ccu_device->dev_mutex);
-
 	_clk_count = 0;
 	ccu_create_user(&user);
 	if (IS_ERR_OR_NULL(user)) {
 		LOG_ERR("fail to create user\n");
-		mutex_unlock(&g_ccu_device->dev_mutex);
 		return -ENOMEM;
 	}
 
@@ -455,8 +451,6 @@ static int ccu_open(struct inode *inode, struct file *flip)
 	for (i = 0; i < CCU_IMPORT_BUF_NUM; i++)
 		import_buffer_handle[i] =
 			(struct ion_handle *)CCU_IMPORT_BUF_UNDEF;
-
-	mutex_unlock(&g_ccu_device->dev_mutex);
 
 	return ret;
 }
@@ -643,9 +637,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 	struct CCU_WAIT_IRQ_STRUCT IrqInfo;
 	struct ccu_user_s *user = flip->private_data;
 
-	if ((cmd != CCU_IOCTL_WAIT_IRQ) && (cmd != CCU_IOCTL_WAIT_AF_IRQ))
-		mutex_lock(&g_ccu_device->dev_mutex);
-
 	LOG_DBG("%s+, cmd:%d\n", __func__, cmd);
 
 	if ((cmd != CCU_IOCTL_SET_POWER) && (cmd != CCU_IOCTL_FLUSH_LOG) &&
@@ -653,8 +644,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		powert_stat = ccu_query_power_status();
 		if (powert_stat == 0) {
 			LOG_WARN("ccuk: ioctl without powered on\n");
-			if (cmd != CCU_IOCTL_WAIT_AF_IRQ)
-				mutex_unlock(&g_ccu_device->dev_mutex);
 			return -EFAULT;
 		}
 	}
@@ -669,7 +658,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		if (ret != 0) {
 			LOG_ERR(
 			"[SET_POWER] copy_from_user failed, ret=%d\n", ret);
-			mutex_unlock(&g_ccu_device->dev_mutex);
 			return -EFAULT;
 		}
 		ret = ccu_set_power(&power);
@@ -694,7 +682,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		if (ret != 0) {
 			LOG_ERR(
 			"[ENQUE_COMMAND] copy_from_user failed, ret=%d\n", ret);
-			mutex_unlock(&g_ccu_device->dev_mutex);
 			return -EFAULT;
 		}
 
@@ -710,21 +697,18 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		if (ret != 0) {
 			LOG_ERR(
 			"[DEQUE_COMMAND] pop command failed, ret=%d\n", ret);
-			mutex_unlock(&g_ccu_device->dev_mutex);
 			return -EFAULT;
 		}
 		ret = copy_to_user((void *)arg, cmd, sizeof(struct ccu_cmd_s));
 		if (ret != 0) {
 			LOG_ERR(
 			"[DEQUE_COMMAND] copy_to_user failed, ret=%d\n", ret);
-			mutex_unlock(&g_ccu_device->dev_mutex);
 			return -EFAULT;
 		}
 		ret = ccu_free_command(cmd);
 		if (ret != 0) {
 			LOG_ERR(
 			"[DEQUE_COMMAND] free command, ret=%d\n", ret);
-			mutex_unlock(&g_ccu_device->dev_mutex);
 			return -EFAULT;
 		}
 
@@ -737,7 +721,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 		if (ret != 0) {
 			LOG_ERR(
 			"[FLUSH_COMMAND] flush command failed, ret=%d\n", ret);
-			mutex_unlock(&g_ccu_device->dev_mutex);
 			return -EFAULT;
 		}
 
@@ -828,6 +811,22 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 
 		break;
 	}
+	case CCU_IOCTL_SEND_CMD:
+	{	/*--todo: not used for now, remove it*/
+		struct ccu_cmd_s cmd;
+
+		ret = copy_from_user(
+			&cmd, (void *)arg, sizeof(struct ccu_cmd_s));
+
+		if (ret != 0) {
+			LOG_ERR(
+			"[CCU_IOCTL_SEND_CMD] copy_from_user failed, ret=%d\n",
+			ret);
+			return -EFAULT;
+		}
+		ccu_send_command(&cmd);
+		break;
+	}
 
 	case CCU_IOCTL_FLUSH_LOG:
 	{
@@ -879,7 +878,6 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 			"CCU_IOCTL_GET_I2C_DMA_BUF_ADDR fail: %d\n",
 			ret);
 			ret = -EFAULT;
-			break;
 		}
 
 		ret = ccu_get_i2c_dma_buf_addr(g_ccu_device, &ioarg);
@@ -989,10 +987,8 @@ static long ccu_ioctl(struct file *flip, unsigned int cmd,
 	case CCU_READ_REGISTER:
 	{
 		int regToRead = (int)arg;
-		int rc = ccu_read_info_reg(regToRead);
 
-		mutex_unlock(&g_ccu_device->dev_mutex);
-		return rc;
+		return ccu_read_info_reg(regToRead);
 	}
 
 	case CCU_IOCTL_IMPORT_MEM:
@@ -1047,9 +1043,6 @@ EXIT:
 			current->comm, current->pid, current->tgid);
 	}
 
-	if ((cmd != CCU_IOCTL_WAIT_IRQ) && (cmd != CCU_IOCTL_WAIT_AF_IRQ))
-		mutex_unlock(&g_ccu_device->dev_mutex);
-
 	return ret;
 }
 
@@ -1057,8 +1050,6 @@ static int ccu_release(struct inode *inode, struct file *flip)
 {
 	struct ccu_user_s *user = flip->private_data;
 	int i = 0;
-
-	mutex_lock(&g_ccu_device->dev_mutex);
 
 	LOG_INF_MUST("%s +\n", __func__);
 	ccu_force_powerdown();
@@ -1079,8 +1070,6 @@ static int ccu_release(struct inode *inode, struct file *flip)
 	ccu_ion_uninit();
 
 	LOG_INF_MUST("%s -\n", __func__);
-
-	mutex_unlock(&g_ccu_device->dev_mutex);
 
 	return 0;
 }
@@ -1517,7 +1506,6 @@ static int __init CCU_INIT(void)
 	INIT_LIST_HEAD(&g_ccu_device->user_list);
 	mutex_init(&g_ccu_device->user_mutex);
 	mutex_init(&g_ccu_device->clk_mutex);
-	mutex_init(&g_ccu_device->dev_mutex);
 	mutex_init(&g_ccu_device->ion_client_mutex);
 	init_waitqueue_head(&g_ccu_device->cmd_wait);
 
