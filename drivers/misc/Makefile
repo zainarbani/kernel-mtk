@@ -3,6 +3,9 @@
 # Makefile for misc devices that really don't fit anywhere else.
 #
 
+# board id
+obj-y += board_id.o
+
 obj-$(CONFIG_IBM_ASM)		+= ibmasm/
 obj-$(CONFIG_AD525X_DPOT)	+= ad525x_dpot.o
 obj-$(CONFIG_AD525X_DPOT_I2C)	+= ad525x_dpot-i2c.o
