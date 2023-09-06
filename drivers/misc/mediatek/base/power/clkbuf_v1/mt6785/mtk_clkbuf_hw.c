@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2018 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -27,6 +28,7 @@
 //#include <mt-plat/upmu_common.h>
 #include <linux/string.h>
 #include <linux/delay.h>
+#include <linux/board_id.h>
 
 static void __iomem *pwrap_base;
 
@@ -1572,6 +1574,7 @@ short is_clkbuf_bringup(void)
 void clk_buf_post_init(void)
 {
 #if defined(CONFIG_MTK_UFS_SUPPORT)
+	int project_number;
 	int boot_type;
 
 	boot_type = get_boot_type();
@@ -1584,11 +1587,18 @@ void clk_buf_post_init(void)
 	clk_buf_ctrl_internal(CLK_BUF_UFS, CLK_BUF_FORCE_OFF);
 	CLK_BUF7_STATUS = CLOCK_BUFFER_DISABLE;
 #endif
+	project_number = board_id_get_hwversion_product_num();
 #ifndef CONFIG_MTK_MT6382_BDG
 #ifndef CONFIG_NFC_CHIP_SUPPORT
 	/* no need to use XO_NFC if no NFC */
 	clk_buf_ctrl_internal(CLK_BUF_NFC, CLK_BUF_FORCE_OFF);
 	CLK_BUF3_STATUS = CLOCK_BUFFER_DISABLE;
+#else
+	if (project_number == 1 || project_number == 3) {
+		/* no need to use XO_NFC if no NFC */
+		clk_buf_ctrl_internal(CLK_BUF_NFC, CLK_BUF_FORCE_OFF);
+		CLK_BUF3_STATUS = CLOCK_BUFFER_DISABLE;
+	}
 #endif
 #endif
 #ifdef CLKBUF_USE_BBLPM
