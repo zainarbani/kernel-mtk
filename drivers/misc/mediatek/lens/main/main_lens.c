@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -928,8 +929,10 @@ static struct platform_driver g_stAF_Driver = {
 #endif
 	} };
 
+#ifndef CONFIG_OF
 static struct platform_device g_stAF_device = {
 	.name = PLATFORM_DRIVER_NAME, .id = 0, .dev = {} };
+#endif
 
 static int __init MAINAF_i2C_init(void)
 {
@@ -937,10 +940,12 @@ static int __init MAINAF_i2C_init(void)
 	i2c_register_board_info(LENS_I2C_BUSNUM, &kd_lens_dev, 1);
 #endif
 
+#ifndef CONFIG_OF
 	if (platform_device_register(&g_stAF_device)) {
 		LOG_INF("failed to register AF driver\n");
 		return -ENODEV;
 	}
+#endif
 
 	if (platform_driver_register(&g_stAF_Driver)) {
 		LOG_INF("Failed to register AF driver\n");
