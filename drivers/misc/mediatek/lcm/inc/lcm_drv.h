@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -539,12 +540,6 @@ struct dynamic_fps_info {
 	/*unsigned int idle_check_interval;*//*ms*/
 };
 
-struct vsync_trigger_time {
-	unsigned int fps;
-	unsigned int trigger_after_te;
-	unsigned int config_expense_time;
-};
-
 /*DynFPS*/
 enum DynFPS_LEVEL {
 	DFPS_LEVEL0 = 0,
@@ -750,7 +745,6 @@ struct LCM_DSI_PARAMS {
 	/*for ARR*/
 	unsigned int dynamic_fps_levels;
 	struct dynamic_fps_info dynamic_fps_table[DYNAMIC_FPS_LEVELS];
-	struct vsync_trigger_time vsync_after_te[DFPS_LEVELS];
 
 #ifdef CONFIG_MTK_HIGH_FRAME_RATE
 	/****DynFPS start****/
@@ -998,7 +992,7 @@ struct LCM_DRIVER {
 	void (*init)(void);
 	void (*suspend)(void);
 	void (*resume)(void);
-
+	void (*set_disp_param)(unsigned int param);
 	/* for power-on sequence refinement */
 	void (*init_power)(void);
 	void (*suspend_power)(void);
