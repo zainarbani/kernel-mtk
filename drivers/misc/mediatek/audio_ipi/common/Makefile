@@ -14,7 +14,7 @@
 obj-y += framework/
 
 
-ifneq ($(filter y,$(CONFIG_MTK_AURISYS_PHONE_CALL_SUPPORT) $(CONFIG_SND_SOC_MTK_SCP_SMARTPA)),)
+ifneq ($(filter y,$(CONFIG_MTK_AURISYS_PHONE_CALL_SUPPORT) $(CONFIG_SND_SOC_MTK_SCP_SMARTPA $(CONFIG_MTK_ULTRASND_PROXIMITY))),)
 obj-y += tasks/
 endif
 
