@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -20,10 +21,12 @@
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
 #include <linux/of_gpio.h>
+#include <linux/input.h>						
 
 #include <mt-plat/mtk_boot_common.h>
 #include "ccci_debug.h"
 #include "ccci_config.h"
+//#include "ccci_common_config.h"							   
 #include "ccci_modem.h"
 #include "ccci_swtp.h"
 #include "ccci_fsm.h"
@@ -35,7 +38,7 @@ const struct of_device_id swtp_of_match[] = {
 };
 #define SWTP_MAX_SUPPORT_MD 1
 struct swtp_t swtp_data[SWTP_MAX_SUPPORT_MD];
-static const char rf_name[] = "RF_cable";
+struct input_dev *swtp_ipdev;
 #define MAX_RETRY_CNT 3
 
 static int swtp_send_tx_power(struct swtp_t *swtp)
@@ -84,6 +87,8 @@ static int swtp_switch_state(int irq, struct swtp_t *swtp)
 			"%s:can't find match irq\n", __func__);
 		return -1;
 	}
+	CCCI_LEGACY_ALWAYS_LOG(swtp->md_id, SYS, "%s i %d %d\n",
+		__func__, i, swtp->eint_type[i]);
 
 	if (swtp->eint_type[i] == IRQ_TYPE_LEVEL_LOW) {
 		irq_set_irq_type(swtp->irq[i], IRQ_TYPE_LEVEL_HIGH);
@@ -92,12 +97,24 @@ static int swtp_switch_state(int irq, struct swtp_t *swtp)
 		irq_set_irq_type(swtp->irq[i], IRQ_TYPE_LEVEL_LOW);
 		swtp->eint_type[i] = IRQ_TYPE_LEVEL_LOW;
 	}
-
-	if (swtp->gpio_state[i] == SWTP_EINT_PIN_PLUG_IN)
+	if (swtp->gpio_state[i] == SWTP_EINT_PIN_PLUG_IN){
+		if(i == 0){
+			input_report_key(swtp_ipdev, KEY_ANT_UNCONNECT, 1);
+			input_report_key(swtp_ipdev, KEY_ANT_UNCONNECT, 0);
+			input_sync(swtp_ipdev);
+   
+	}	
 		swtp->gpio_state[i] = SWTP_EINT_PIN_PLUG_OUT;
-	else
+	}
+	else{
+		if(i == 0){
+			input_report_key(swtp_ipdev, KEY_ANT_CONNECT, 1);
+			input_report_key(swtp_ipdev, KEY_ANT_CONNECT, 0);
+			input_sync(swtp_ipdev);
+   
+	}
 		swtp->gpio_state[i] = SWTP_EINT_PIN_PLUG_IN;
-
+	}
 	swtp->tx_power_mode = SWTP_NO_TX_POWER;
 	for (i = 0; i < MAX_PIN_NUM; i++) {
 		if (swtp->gpio_state[i] == SWTP_EINT_PIN_PLUG_IN) {
@@ -105,7 +122,7 @@ static int swtp_switch_state(int irq, struct swtp_t *swtp)
 			break;
 		}
 	}
-	inject_pin_status_event(swtp->curr_mode, rf_name);
+
 	spin_unlock_irqrestore(&swtp->spinlock, flags);
 
 	return swtp->tx_power_mode;
@@ -140,6 +157,7 @@ static irqreturn_t swtp_irq_handler(int irq, void *data)
 	struct swtp_t *swtp = (struct swtp_t *)data;
 	int ret = 0;
 
+	pr_err("==== swtp_irq_func ====\n");							 
 	ret = swtp_switch_state(irq, swtp);
 	if (ret < 0) {
 		CCCI_LEGACY_ERR_LOG(swtp->md_id, SYS,
@@ -190,6 +208,7 @@ static void swtp_init_delayed_work(struct work_struct *work)
 		struct swtp_t, init_delayed_work);
 	int md_id;
 	int i, ret = 0;
+	int swtp_register_count = 0;
 #ifdef CONFIG_MTK_EIC
 	u32 ints[2] = { 0, 0 };
 #else
@@ -203,6 +222,24 @@ static void swtp_init_delayed_work(struct work_struct *work)
 
 	md_id = swtp->md_id;
 
+	/*input system config*/
+	swtp_ipdev = input_allocate_device();
+	if (!swtp_ipdev) {
+		pr_err("swtp_init: input_allocate_device fail\n");
+		goto SWTP_INIT_END;
+	}
+	swtp_ipdev->name = "swtp-input";
+	input_set_capability(swtp_ipdev, EV_KEY, KEY_ANT_CONNECT);
+	input_set_capability(swtp_ipdev, EV_KEY, KEY_ANT_UNCONNECT);
+	input_set_capability(swtp_ipdev, EV_KEY, DIV_ANT_CONNECT);
+	input_set_capability(swtp_ipdev, EV_KEY, DIV_ANT_UNCONNECT);
+	//set_bit(INPUT_PROP_NO_DUMMY_RELEASE, ant_info->ipdev->propbit);
+	ret = input_register_device(swtp_ipdev);
+	if (ret) {
+		pr_err("swtp_init: input_register_device fail rc=%d\n", ret);
+		goto SWTP_INIT_END;
+	}
+	pr_info("swtp_init: input_register_device success \n");   
 	if (md_id < 0 || md_id >= SWTP_MAX_SUPPORT_MD) {
 		ret = -2;
 		CCCI_LEGACY_ERR_LOG(-1, SYS,
@@ -222,7 +259,7 @@ static void swtp_init_delayed_work(struct work_struct *work)
 				CCCI_LEGACY_ERR_LOG(md_id, SYS,
 					"%s:swtp%d get debounce fail\n",
 					__func__, i);
-				break;
+			//	break;
 			}
 
 			ret = of_property_read_u32_array(node, "interrupts",
@@ -231,7 +268,7 @@ static void swtp_init_delayed_work(struct work_struct *work)
 				CCCI_LEGACY_ERR_LOG(md_id, SYS,
 					"%s:swtp%d get interrupts fail\n",
 					__func__, i);
-				break;
+			//	break;
 			}
 #ifdef CONFIG_MTK_EIC /* for chips before mt6739 */
 			swtp_data[md_id].gpiopin[i] = ints[0];
@@ -254,8 +291,9 @@ static void swtp_init_delayed_work(struct work_struct *work)
 				CCCI_LEGACY_ERR_LOG(md_id, SYS,
 					"swtp%d-eint IRQ LINE NOT AVAILABLE\n",
 					i);
-				break;
+			//	break;
 			}
+			swtp_register_count ++;
 		} else {
 			CCCI_LEGACY_ERR_LOG(md_id, SYS,
 				"%s:can't find swtp%d compatible node\n",
@@ -263,6 +301,10 @@ static void swtp_init_delayed_work(struct work_struct *work)
 			ret = -3;
 		}
 	}
+	if(swtp_ipdev && swtp_register_count <= 0){
+		input_unregister_device(swtp_ipdev);
+	}
+	swtp_register_count = 0;
 	register_ccci_sys_call_back(md_id, MD_SW_MD1_TX_POWER_REQ,
 		swtp_md_tx_power_req_hdlr);
 
