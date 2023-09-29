@@ -780,6 +780,12 @@ config ARCH_HAS_CACHE_LINE_SIZE
 
 source "mm/Kconfig"
 
+config TARGET_PROJECT_K7B
+        default n
+        bool "Custom project for hardware k7b_pcb"
+        help
+        Custom project for k7b_pcb.
+
 config SECCOMP
 	bool "Enable seccomp to safely compute untrusted bytecode"
 	---help---
