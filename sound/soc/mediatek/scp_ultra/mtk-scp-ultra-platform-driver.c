@@ -20,7 +20,6 @@
 #include "scp_excep.h"
 #include "audio_ultra_msg_id.h"
 #include "mtk-scp-ultra-mem-control.h"
-#include "mtk-scp-ultra-platform-mem-control.h"
 #include "mtk-scp-ultra-platform-driver.h"
 #include "mtk-base-scp-ultra.h"
 #include "mtk-scp-ultra-common.h"
@@ -157,7 +156,7 @@ static int mtk_scp_ultra_dump_set(struct snd_kcontrol *kcontrol,
 	struct mtk_base_afe *afe = ultra_get_afe_base();
 	static int ctrl_val;
 	int timeout = 0;
-	unsigned int payload[3];
+	int payload[3];
 	bool ret_val;
 
 	dev_dbg(scp_ultra->dev, "%s(), value = %ld, dump_flag = %d\n",
@@ -177,8 +176,8 @@ static int mtk_scp_ultra_dump_set(struct snd_kcontrol *kcontrol,
 
 		ret_val = ultra_ipi_send(AUDIO_TASK_USND_MSG_ID_PCMDUMP_ON,
 					 false,
-					 3*sizeof(unsigned int),
-					 (char *)&payload[0],
+					 3,
+					 &payload[0],
 					 ULTRA_IPI_BYPASS_ACK);
 		ultra_ipi_wait = true;
 	} else if (ultra_dump->dump_flag == true &&
@@ -260,7 +259,7 @@ static int mtk_scp_ultra_gain_config_set(struct snd_kcontrol *kcontrol,
 					 const unsigned int __user *data,
 					 unsigned int size)
 {
-	unsigned int payload[2];
+	int payload[2];
 
 	if (copy_from_user(&gain_config,
 			   data,
@@ -275,8 +274,8 @@ static int mtk_scp_ultra_gain_config_set(struct snd_kcontrol *kcontrol,
 		__func__, gain_config.mic_gain, gain_config.receiver_gain);
 	ultra_ipi_send(AUDIO_TASK_USND_MSG_ID_ANALOG_GAIN,
 		       false,
-		       2*sizeof(unsigned int),
-		       (char *)&payload[0],
+		       2,
+		       &payload[0],
 		       ULTRA_IPI_BYPASS_ACK);
 	return 0;
 }
@@ -300,7 +299,7 @@ static int mtk_scp_ultra_engine_state_set(struct snd_kcontrol *kcontrol,
 	int scp_ultra_memif_dl_id;
 	int scp_ultra_memif_ul_id;
 	int val = ucontrol->value.integer.value[0];
-	unsigned int payload[7];
+	int payload[7];
 	int old_usnd_state = scp_ultra->usnd_state;
 	bool ret_val = false;
 
@@ -311,9 +310,9 @@ static int mtk_scp_ultra_engine_state_set(struct snd_kcontrol *kcontrol,
 	scp_ultra->usnd_state = val;
 
 	scp_ultra_memif_dl_id =
-		get_scp_ultra_memif_id(SCP_ULTRA_DL_DAI_ID);
+		scp_ultra->scp_ultra_dl_memif_id;
 	scp_ultra_memif_ul_id =
-		get_scp_ultra_memif_id(SCP_ULTRA_UL_DAI_ID);
+		scp_ultra->scp_ultra_ul_memif_id;
 	ultra_mem->ultra_dl_memif_id = scp_ultra_memif_dl_id;
 	ultra_mem->ultra_ul_memif_id = scp_ultra_memif_ul_id;
 	pr_info("%s() new state=%d, memdl=%d, memul=%d\n",
@@ -337,8 +336,8 @@ static int mtk_scp_ultra_engine_state_set(struct snd_kcontrol *kcontrol,
 		payload[6] = param_config.target_out_channel;
 		ret_val = ultra_ipi_send(AUDIO_TASK_USND_MSG_ID_ON,
 					false,
-					7*sizeof(unsigned int),
-					(char *)&payload[0],
+					7,
+					&payload[0],
 					ULTRA_IPI_NEED_ACK);
 		if (ret_val == 0) {
 			pr_info("%s() set state on failed\n", __func__);
@@ -434,9 +433,9 @@ static int mtk_scp_ultra_pcm_open(struct snd_pcm_substream *substream)
 	struct mtk_base_scp_ultra_mem *ultra_mem = &scp_ultra->ultra_mem;
 	struct mtk_base_afe *afe = ultra_get_afe_base();
 	int scp_ultra_memif_dl_id =
-		get_scp_ultra_memif_id(SCP_ULTRA_DL_DAI_ID);
+		scp_ultra->scp_ultra_dl_memif_id;
 	int scp_ultra_memif_ul_id =
-		get_scp_ultra_memif_id(SCP_ULTRA_UL_DAI_ID);
+		scp_ultra->scp_ultra_ul_memif_id;
 
 	ultra_mem->ultra_dl_memif_id = scp_ultra_memif_dl_id;
 	ultra_mem->ultra_ul_memif_id = scp_ultra_memif_ul_id;

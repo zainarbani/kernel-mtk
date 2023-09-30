@@ -57,7 +57,7 @@ static int scp_ultra_pcm_dev_probe(struct platform_device *pdev)
 	if (!scp_ultra)
 		return -ENOMEM;
 
-	/*ret = of_property_read_u32(pdev->dev.of_node, "scp_ultra_dl_memif_id",
+	ret = of_property_read_u32(pdev->dev.of_node, "scp_ultra_dl_memif_id",
 				   &scp_ultra->scp_ultra_dl_memif_id);
 	if (ret != 0) {
 		pr_info("%s scp_ultra_dl_memif_id error\n", __func__);
@@ -68,7 +68,7 @@ static int scp_ultra_pcm_dev_probe(struct platform_device *pdev)
 	if (ret != 0) {
 		pr_info("%s scp_ultra_ul_memif_id error\n", __func__);
 		return 0;
-	}*/
+	}
 
 	/*  register dsp dai driver*/
 	scp_ultra->mtk_scp_hardware = &scp_ultra_hardware;

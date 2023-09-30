@@ -13,7 +13,6 @@
 //#include "audio_ultra_msg_id.h"
 #include "ultra_ipi.h"
 #include "mtk-base-afe.h"
-#include "mtk-scp-ultra-platform-mem-control.h"
 
 
 /* don't use this directly if not necessary */

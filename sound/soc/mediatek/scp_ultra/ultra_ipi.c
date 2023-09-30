@@ -25,8 +25,6 @@
 #ifdef CONFIG_MTK_TINYSYS_SCP_SUPPORT
 #include <mt-plat/mtk_tinysys_ipi.h>
 #endif
-#include "audio_ultra_msg_id.h"
-
 static void ultra_ipi_IPICmd_Received(struct ipi_msg_t *ipi_msg);
 static bool ultra_ipi_IPICmd_ReceiveAck(struct ipi_msg_t *ipi_msg);
 static void ultra_ipi_Unloaded_Handling(void);
@@ -41,6 +39,7 @@ bool (*ultra_ipi_tx_ack_handle)(unsigned int a, unsigned int b);
 /*****************************************************************************
  * Function
  ****************************************************************************/
+
 unsigned int ultra_check_scp_status(void)
 {
 #ifdef CONFIG_MTK_TINYSYS_SCP_SUPPORT
@@ -81,6 +80,7 @@ static bool ultra_ipi_IPICmd_ReceiveAck(struct ipi_msg_t *ipi_msg)
 void ultra_ipi_register(void (*ipi_rx_call)(unsigned int, void *),
 			bool (*ipi_tx_ack_call)(unsigned int, unsigned int))
 {
+
 	audio_task_register_callback(TASK_SCENE_VOICE_ULTRASOUND,
 					ultra_ipi_IPICmd_Received, ultra_ipi_Unloaded_Handling);
 
@@ -90,10 +90,10 @@ void ultra_ipi_register(void (*ipi_rx_call)(unsigned int, void *),
 
 
 bool ultra_ipi_send(unsigned int msg_id,
-		    bool polling_mode,
-		    unsigned int payload_len,
-		    char *payload,
-		    unsigned int need_ack)
+			bool polling_mode,
+			unsigned int payload_len,
+		    int *payload,
+			unsigned int need_ack)
 {
 	bool ret = false;
 	struct ipi_msg_t ipi_msg;
@@ -102,7 +102,7 @@ bool ultra_ipi_send(unsigned int msg_id,
 	unsigned int retry_cnt;
 	uint8_t data_type = 0;
 	uint8_t ack_type = AUDIO_IPI_MSG_BYPASS_ACK;
-	uint32_t param1 = 0;
+	uint32_t param1 = sizeof(unsigned int) * payload_len;
 	uint32_t param2 = 0;
 
 	if (!ultra_check_scp_status()) {
@@ -115,29 +115,11 @@ bool ultra_ipi_send(unsigned int msg_id,
 		pr_info("scp is recovering, then break\n");
 		return false;
 	}
-
 	ack_type = need_ack;
-
-	switch (msg_id) {
-	case AUDIO_TASK_USND_MSG_ID_PCMDUMP_ON:
-	case AUDIO_TASK_USND_MSG_ID_ANALOG_GAIN:
-	case AUDIO_TASK_USND_MSG_ID_ON:{
-		param1 = payload_len;
-		data_type = AUDIO_IPI_PAYLOAD;
-		break;
-	}
-
-	case AUDIO_TASK_USND_MSG_ID_STOP:
-	case AUDIO_TASK_USND_MSG_ID_OFF:
-	case AUDIO_TASK_USND_MSG_ID_PCMDUMP_OFF:
-	case AUDIO_TASK_USND_MSG_ID_START:{
+	if (payload == NULL)
 		data_type = AUDIO_IPI_MSG_ONLY;
-		break;
-	}
-	default:
-		break;
-	}
-
+	else
+		data_type = AUDIO_IPI_PAYLOAD;
 	for (retry_cnt = 0; retry_cnt <= retry_time; retry_cnt++) {
 		ipi_result = audio_send_ipi_msg(&ipi_msg,
 						TASK_SCENE_VOICE_ULTRASOUND,
@@ -150,15 +132,13 @@ bool ultra_ipi_send(unsigned int msg_id,
 						payload);
 		if (ipi_result == 0)
 			break;
-
 		if (ultra_GetScpRecoverStatus() == true) {
-			pr_info("scp is recovering, then break\n");
+			pr_debug("scp is recovering, then break\n");
 			break;
 		}
 		if (!polling_mode)
 			msleep(ULTRA_WAITCHECK_INTERVAL_MS);
 	}
-
 	if (ipi_result == 0) {
 		/* ipi send pass */
 		if (ipi_msg.ack_type == AUDIO_IPI_MSG_ACK_BACK)

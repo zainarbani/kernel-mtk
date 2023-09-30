@@ -72,7 +72,7 @@ void ultra_ipi_register(void (*ipi_rx_call)(unsigned int, void *),
 bool ultra_ipi_send(unsigned int msg_id,
 		    bool polling_mode,
 		    unsigned int payload_len,
-		    char *payload,
+		    int *payload,
 		    unsigned int need_ack);
 
 bool ultra_GetScpRecoverStatus(void);

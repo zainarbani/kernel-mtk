@@ -47,6 +47,8 @@ struct mtk_base_scp_ultra {
 	struct mtk_base_scp_ultra_dump ultra_dump;
 	struct audio_ultra_dram ultra_reserve_dram;
 	unsigned int usnd_state;
+	unsigned int scp_ultra_dl_memif_id;
+	unsigned int scp_ultra_ul_memif_id;
 };
 
 struct ultra_param_config {
