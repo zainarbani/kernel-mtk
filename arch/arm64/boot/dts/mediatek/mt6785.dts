@@ -371,6 +371,14 @@ page_owner=on loop.max_part=7";
 			alloc-ranges = <0 0x40000000 0 0x40000000>;
 		};
 
+		soter-shared-mem {
+			compatible = "microtrust,shared_mem";
+			no-map;
+			size = <0 0x800000>;
+			alignment = <0 0x1000000>;
+			alloc-ranges = <0 0x40000000 0 0x50000000>;
+		};
+
 	};
 
 	cpu_dbgapb: cpu_dbgapb@0e010000 {
@@ -2907,6 +2915,8 @@ page_owner=on loop.max_part=7";
 
 	snd_scp_ultra: snd_scp_ultra {
 		compatible = "mediatek,snd_scp_ultra";
+		scp_ultra_dl_memif_id = <7>;
+		scp_ultra_ul_memif_id = <14>;
 	};
 
 	audio_sram@11211000 {
@@ -4590,13 +4600,6 @@ page_owner=on loop.max_part=7";
 		status = "disabled";
 	};
 
-	mt6382_eint: mt6382_eint {
-		compatible = "mediatek, mt6382_eint";
-		interrupt-parent = <&pio>;
-		interrupts = <5 IRQ_TYPE_LEVEL_HIGH 5 0>;
-		status = "okay";
-	};
-
 	mt6382_nfc: mt6382_nfc {
 		compatible = "mediatek, mt6382_nfc-eint";
 		interrupt-parent = <&pio>;
@@ -5302,7 +5305,8 @@ page_owner=on loop.max_part=7";
 		/* enable_pe_plus; */
 		/* enable_pd20_reset; */
 		/* power_path_support; */
-		max_charger_voltage = <4000000>;
+		max_charger_voltage = <6500000>;
+		min_charger_voltage = <4000000>;
 		fast_charge_voltage = <3000000>;
 
 		/* charging current */
