@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 //
 // Copyright (C) 2018 MediaTek Inc.
+// Copyright (C) 2021 XiaoMi, Inc.
 
 #include "mtk-scp-ultra-common.h"
 #include "mtk-base-scp-ultra.h"
@@ -12,6 +13,7 @@
 //#include "audio_ultra_msg_id.h"
 #include "ultra_ipi.h"
 #include "mtk-base-afe.h"
+#include "mtk-scp-ultra-platform-mem-control.h"
 
 
 /* don't use this directly if not necessary */
@@ -130,4 +132,3 @@ void set_afe_ul_irq_target(int scp_enable)
 		 irq_data->irq_ap_en_reg,
 		 irq_data->irq_scp_en_reg);
 }
-

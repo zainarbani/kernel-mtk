@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2019 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -71,7 +72,7 @@ void ultra_ipi_register(void (*ipi_rx_call)(unsigned int, void *),
 bool ultra_ipi_send(unsigned int msg_id,
 		    bool polling_mode,
 		    unsigned int payload_len,
-		    int *payload,
+		    char *payload,
 		    unsigned int need_ack);
 
 bool ultra_GetScpRecoverStatus(void);

@@ -96,4 +96,3 @@ void mtk_scp_ultra_ipi_send(uint8_t data_type, /*audio_ipi_msg_data_t*/
 void set_afe_dl_irq_target(int scp_enable);
 void set_afe_ul_irq_target(int scp_enable);
 #endif
-
