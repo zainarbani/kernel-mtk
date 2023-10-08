@@ -145,7 +145,7 @@ static int holtek_kbd_probe(struct hid_device *hdev,
 {
 	struct usb_interface *intf;
 	int ret;
- 
+
 	if (!hid_is_usb(hdev))
 		return -EINVAL;
 
