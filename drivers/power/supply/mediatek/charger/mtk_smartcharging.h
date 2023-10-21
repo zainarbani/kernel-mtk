@@ -76,8 +76,6 @@ enum sc_info {
 	SC_IBAT_SETTING,
 	SC_IBAT,
 	SC_IBAT_ALG,
-	SC_IBUS,
-	SC_DBGLV,
 	SC_SOLUTION,
 
 	SC_INFO_MAX
