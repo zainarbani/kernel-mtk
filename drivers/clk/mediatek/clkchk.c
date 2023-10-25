@@ -18,7 +18,7 @@
 #include <linux/slab.h>
 #include <linux/syscore_ops.h>
 
-#if IS_ENABLED(CONFIG_MTK_DEVAPC) && !IS_ENABLED(CONFIG_DEVAPC_LEGACY)
+#ifdef CONFIG_MTK_DEVAPC
 #include <mt-plat/devapc_public.h>
 #endif
 #include "clkchk.h"
@@ -90,7 +90,7 @@ bool is_valid_reg(void __iomem *addr)
 #endif
 }
 
-#if IS_ENABLED(CONFIG_MTK_DEVAPC) && !IS_ENABLED(CONFIG_DEVAPC_LEGACY)
+#ifdef CONFIG_MTK_DEVAPC
 static void devapc_dump_regs(void)
 {
 	if (!clkchk_cfg || !clkchk_cfg || !clkchk_cfg->get_devapc_dump)
@@ -438,7 +438,7 @@ int clkchk_init(struct clkchk_cfg_t *cfg)
 	else
 		pr_notice("clk register_syscore_ops fail\n");
 
-#if IS_ENABLED(CONFIG_MTK_DEVAPC) && !IS_ENABLED(CONFIG_DEVAPC_LEGACY)
+#ifdef CONFIG_MTK_DEVAPC
 	register_devapc_vio_callback(&devapc_vio_handle);
 #endif
 
