@@ -15,7 +15,6 @@
 #include <linux/io.h>
 
 #include "clkdbg.h"
-#include "clkchk.h"
 #include "mt6765_clkmgr.h"
 
 #define ALL_CLK_ON		0
