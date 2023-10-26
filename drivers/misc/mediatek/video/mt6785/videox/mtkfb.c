@@ -1005,7 +1005,7 @@ unsigned int mtkfb_fm_auto_test(void)
 	}
 
 	if (idle_state_backup) {
-		primary_display_idlemgr_kick(__func__, 1);
+		primary_display_idlemgr_kick(__func__, 0);
 		enable_idlemgr(0);
 	}
 
@@ -1041,7 +1041,6 @@ unsigned int mtkfb_fm_auto_test(void)
 	mtkfb_pan_display_impl(&mtkfb_fbi->var, mtkfb_fbi);
 	msleep(100);
 
-	primary_display_idlemgr_kick(__func__, 1);
 	result = primary_display_lcm_ATA();
 
 	if (idle_state_backup)
