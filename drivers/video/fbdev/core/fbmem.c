@@ -1098,14 +1098,14 @@ fb_blank(struct fb_info *info, int blank)
 	event.info = info;
 	event.data = &blank;
 
-	printk("----FTS----FB-EARLY-EVENT-BLANK");
+	pr_debug("----FTS----FB-EARLY-EVENT-BLANK");
 	early_ret = fb_notifier_call_chain(FB_EARLY_EVENT_BLANK, &event);
 
 	if (info->fbops->fb_blank)
  		ret = info->fbops->fb_blank(blank, info);
 
 	if (!ret){
-		printk("----FTS----FB-EVENT-BLANK");
+		pr_debug("----FTS----FB-EVENT-BLANK");
 		fb_notifier_call_chain(FB_EVENT_BLANK, &event);}
 	else {
 		/*
@@ -1113,7 +1113,7 @@ fb_blank(struct fb_info *info, int blank)
 		 * the early blank event.
 		 */
 		if (!early_ret){
-			printk("----FTS----FB-EARLY-EVENT-BLANK2");
+			pr_debug("----FTS----FB-EARLY-EVENT-BLANK2");
 			fb_notifier_call_chain(FB_R_EARLY_EVENT_BLANK, &event);}
 	}
 

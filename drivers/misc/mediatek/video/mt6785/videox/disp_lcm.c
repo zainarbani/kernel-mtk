@@ -1085,7 +1085,7 @@ static ssize_t dsi_display_set_hbm(struct device *dev,struct device_attribute *a
 		pr_err("kstrtoint failed. rc=%d\n", rc);
 		return rc;
 	}
-	pr_info("xinj:_###_%s,set_hbm_cmd: %d\n",__func__, param);
+	pr_debug("xinj:_###_%s,set_hbm_cmd: %d\n",__func__, param);
 	switch(param) {
 		case 0x1: //hbm1 on
 			display_feature_push_table(hbm1_on,1,1);
@@ -1118,17 +1118,17 @@ static int display_feature_create_sysfs(void)
 
    dsi_display_hbm = kobject_create_and_add("display_hbm", NULL);
    if(dsi_display_hbm == NULL) {
-     pr_info(" temp_create_sysfs_ failed\n");
+     pr_debug(" temp_create_sysfs_ failed\n");
      ret=-ENOMEM;
      return ret;
    }
-   pr_info(" temp_create_sysfs_ success \n");
+   pr_debug(" temp_create_sysfs_ success \n");
    ret=sysfs_create_file(dsi_display_hbm, &dev_attr_hbm_mode.attr);
    if(ret) {
-    pr_info("%s failed \n", __func__);
+    pr_debug("%s failed \n", __func__);
     kobject_del(dsi_display_hbm);
    }
-   pr_info("%s success \n", __func__);
+   pr_debug("%s success \n", __func__);
    return 0;
 }
 //2020.12.09 longcheer add for hbm end

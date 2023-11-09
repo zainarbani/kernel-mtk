@@ -5136,7 +5136,7 @@ int primary_display_suspend(void)
 	g_notify_data.data = &event;
 
 	//START tp fb suspend
-	printk("-----FTS----primary_display_suspend_early");
+	pr_debug("-----FTS----primary_display_suspend_early");
 	fb_drm_notifier_call_chain(FB_DRM_EVENT_BLANK, &g_notify_data);
 	
 	DISPCHECK("%s begin\n", __func__);
@@ -5332,7 +5332,7 @@ done:
 	aee_kernel_wdt_kick_Powkey_api("mtkfb_early_suspend",
 				       WDT_SETBY_Display);
 #endif
-	printk("-----FTS----primary_display_suspend");
+	pr_debug("-----FTS----primary_display_suspend");
 	fb_drm_notifier_call_chain(FB_DRM_EARLY_EVENT_BLANK, &g_notify_data);
 	primary_trigger_cnt = 0;
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_suspend,
@@ -5484,9 +5484,9 @@ int primary_display_resume(void)
 	g_notify_data.data = &event;
 
 	//START tp fb suspend
-	printk("-----FTS----primary_display_resume_early");
+	pr_debug("-----FTS----primary_display_resume_early");
 	fb_drm_notifier_call_chain(FB_DRM_EARLY_EVENT_BLANK, &g_notify_data);
-	printk("---FTS---mt6785");
+	pr_debug("---FTS---mt6785");
 	DISPCHECK("%s begin\n", __func__);
 	DISPFUNCSTART();
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_resume,
@@ -5882,7 +5882,7 @@ done:
 			 MMPROFILE_FLAG_END, 0, 0);
 	ddp_clk_check();
 
-	printk("-----FTS----primary_display_resume");
+	pr_debug("-----FTS----primary_display_resume");
 	fb_drm_notifier_call_chain(FB_DRM_EVENT_BLANK, &g_notify_data);
 
 	disp_tphint_reset_status();
