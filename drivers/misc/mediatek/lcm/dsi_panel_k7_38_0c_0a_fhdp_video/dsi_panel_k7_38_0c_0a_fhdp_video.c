@@ -238,7 +238,7 @@ static void lcm_set_util_funcs(const struct LCM_UTIL_FUNCS *util)
 static void lcm_set_disp_param(unsigned int param)
 {
 	int ret;
-	pr_info("lcm_set_disp_paramt: param = %d\n", param);
+	pr_debug("lcm_set_disp_paramt: param = %d\n", param);
 	ret = panel_disp_param_send_lock(PANEL_SUMSUNG_FT3418,param, push_table);
 	return;
 }
@@ -316,14 +316,14 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 static void lcm_init_power(void)
 {
 
-	//pr_info("kxx add for [LCM]%s\n",__func__);
+	//pr_debug("kxx add for [LCM]%s\n",__func__);
 	//lcd_bl_en = 1;
 }
 
 
 static void lcm_suspend_power(void)
 {
-	//pr_info("kxxadd for [LCM]%s\n",__func__);
+	//pr_debug("kxxadd for [LCM]%s\n",__func__);
 	MDELAY(5);
 	disp_dts_gpio_select_state(DTS_GPIO_STATE_LCM_LDO3_OUT0);
 	MDELAY(5);
@@ -333,14 +333,14 @@ static void lcm_suspend_power(void)
 
 static void lcm_resume_power(void)
 {
-	//pr_info("[LCM]%s\n",__func__);
+	//pr_debug("[LCM]%s\n",__func__);
 
 }
 
 static void lcm_init(void)
 {
 
-	//pr_info("kxxadd for [LCM]%s\n",__func__);
+	//pr_debug("kxxadd for [LCM]%s\n",__func__);
 	disp_dts_gpio_select_state(DTS_GPIO_STATE_LCD_LDO18_OUT1);
 	disp_dts_gpio_select_state(DTS_GPIO_STATE_LCM_LDO3_OUT1);
 	MDELAY(1);
@@ -356,14 +356,14 @@ static void lcm_init(void)
 
 static void lcm_suspend(void)
 {
-	//pr_info("kxx add for [LCM]%s\n",__func__);
+	//pr_debug("kxx add for [LCM]%s\n",__func__);
 	push_table(lcm_suspend_setting,sizeof(lcm_suspend_setting) / sizeof(struct LCM_setting_table),1);
 	disp_dts_gpio_select_state(DTS_GPIO_STATE_LCM_RST_OUT0);
 }
 
 static void lcm_resume(void)
 {
-	//pr_info("kxx add for [LCM]%s\n",__func__);
+	//pr_debug("kxx add for [LCM]%s\n",__func__);
 	lcm_init();
 }
 
@@ -430,8 +430,8 @@ static unsigned int lcm_compare_id(void)
 	id0 = buffer0[0];     // we only need ID
 	//read_reg_v2(0x44, buffer1, 1);
 	id1 = buffer0[3];     // we only need ID
-	pr_info("%s,icnl9911c debug: icnl9911c id0 = 0x%x, id1 = 0x%x\n", __func__, id0,id1);
-	pr_info("%s,icnl9911c debug: icnl9911c buff[1] = 0x%x, buff[2] = 0x%x\n", __func__, buffer0[1],buffer0[2]);
+	pr_debug("%s,icnl9911c debug: icnl9911c id0 = 0x%x, id1 = 0x%x\n", __func__, id0,id1);
+	pr_debug("%s,icnl9911c debug: icnl9911c buff[1] = 0x%x, buff[2] = 0x%x\n", __func__, buffer0[1],buffer0[2]);
 	if(id0 == 0x31 && id1 == 0x41)
 		return 1;
 	else
@@ -520,7 +520,7 @@ static unsigned int lcm_ata_check(unsigned char *buffer)
 static void lcm_setbacklight_cmdq(void *handle, unsigned int level)
 {
 
-	pr_info("[LCM]%s,kxx add for nt3418 backlight: level = %d\n", __func__, level);
+	pr_debug("[LCM]%s,kxx add for nt3418 backlight: level = %d\n", __func__, level);
 #ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
 #else
 	level = level << 3;

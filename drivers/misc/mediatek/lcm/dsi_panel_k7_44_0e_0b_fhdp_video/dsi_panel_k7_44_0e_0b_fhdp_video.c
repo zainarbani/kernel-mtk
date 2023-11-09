@@ -205,7 +205,7 @@ static void lcm_set_util_funcs(const struct LCM_UTIL_FUNCS *util)
 static void lcm_set_disp_param(unsigned int param)
 {
 	int ret;
-	pr_info("lcm_set_disp_paramt: param = %d\n", param);
+	pr_debug("lcm_set_disp_paramt: param = %d\n", param);
 	ret = panel_disp_param_send_lock(PANEL_VISIONOX,param, push_table);
 	return;
 }
@@ -284,14 +284,14 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 static void lcm_init_power(void)
 {
 
-	pr_info("kxx add for [LCM]%s\n",__func__);
+	pr_debug("kxx add for [LCM]%s\n",__func__);
 	lcd_bl_en = 1;
 }
 
 
 static void lcm_suspend_power(void)
 {
-	pr_info("kxxadd for [LCM]%s\n",__func__);
+	pr_debug("kxxadd for [LCM]%s\n",__func__);
 	MDELAY(5);
 	disp_dts_gpio_select_state(DTS_GPIO_STATE_LCM_LDO3_OUT0);
 	MDELAY(5);
@@ -301,14 +301,14 @@ static void lcm_suspend_power(void)
 
 static void lcm_resume_power(void)
 {
-	pr_info("[LCM]%s\n",__func__);
+	pr_debug("[LCM]%s\n",__func__);
 
 }
 
 static void lcm_init(void)
 {
 
-	pr_info("kxxadd for [LCM]%s\n",__func__);
+	pr_debug("kxxadd for [LCM]%s\n",__func__);
 	disp_dts_gpio_select_state(DTS_GPIO_STATE_LCD_LDO18_OUT1);
 	MDELAY(2);
 	disp_dts_gpio_select_state(DTS_GPIO_STATE_LCM_LDO3_OUT1);
@@ -325,14 +325,14 @@ static void lcm_init(void)
 
 static void lcm_suspend(void)
 {
-	pr_info("kxx add for [LCM]%s\n",__func__);
+	pr_debug("kxx add for [LCM]%s\n",__func__);
 	push_table(lcm_suspend_setting,sizeof(lcm_suspend_setting) / sizeof(struct LCM_setting_table),1);
 	disp_dts_gpio_select_state(DTS_GPIO_STATE_LCM_RST_OUT0);
 }
 
 static void lcm_resume(void)
 {
-	pr_info("kxx add for [LCM]%s\n",__func__);
+	pr_debug("kxx add for [LCM]%s\n",__func__);
 	lcm_init();
 }
 
@@ -407,7 +407,7 @@ static unsigned int lcm_compare_id(void)
 	read_reg_v2(0xDB, buffer, 2);
 	version_id = buffer[0];
 
-	pr_info("%s,kxx add for vtdr_id=0x%x,version_id=0x%x\n", __func__, id, version_id);
+	pr_debug("%s,kxx add for vtdr_id=0x%x,version_id=0x%x\n", __func__, id, version_id);
 
 	if (id == 0x06 && version_id ==0x11)
 		return 1;
@@ -463,7 +463,7 @@ static unsigned int lcm_ata_check(unsigned char *buffer)
 	unsigned int data_array[3];
 	unsigned char read_buf[4];
 
-	pr_info("[LCM]ATA check size = 0x%x,0x%x,0x%x,0x%x\n",
+	pr_debug("[LCM]ATA check size = 0x%x,0x%x,0x%x,0x%x\n",
 			x0_MSB, x0_LSB, x1_MSB, x1_LSB);
 	data_array[0] = 0x0005390A;	/* HS packet */
 	data_array[1] = (x1_MSB << 24) | (x0_LSB << 16) | (x0_MSB << 8) | 0x2a;
@@ -504,7 +504,7 @@ static unsigned int lcm_ata_check(unsigned char *buffer)
 static void lcm_setbacklight_cmdq(void *handle, unsigned int level)
 {
 
-	pr_info("[LCM]%s,kxx add for nt3418 backlight: level = %d lcd_bl_en = %d\n", __func__, level,lcd_bl_en);
+	pr_debug("[LCM]%s,kxx add for nt3418 backlight: level = %d lcd_bl_en = %d\n", __func__, level,lcd_bl_en);
 #ifdef CONFIG_BACKLIGHT_SUPPORT_2047_FEATURE
 #else
 	level = level << 3;
