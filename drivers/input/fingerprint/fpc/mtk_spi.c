@@ -282,7 +282,7 @@ static const struct attribute_group performance_attr_group = {
 
 static void unblank_work(struct work_struct *work)
 {
-	pr_info(" entry %s line %d \n", __func__, __LINE__);
+	pr_debug(" entry %s line %d \n", __func__, __LINE__);
 	mtkfb_prim_panel_unblank(200);
 }
 
@@ -295,7 +295,7 @@ static void freq_release(struct work_struct *work)
 		freq_to_set[i].max = -1;
 	}
 	if (atomic_read(&boosted) == 1) {
-		pr_info("%s  release freq lock\n", __func__);
+		pr_debug("%s  release freq lock\n", __func__);
 		update_userlimit_cpu_freq(CPU_KIR_FP, cluster_num, freq_to_set);
 		atomic_dec(&boosted);
 	}
@@ -303,7 +303,7 @@ static void freq_release(struct work_struct *work)
 
 static void freq_release_timer(unsigned long arg)
 {
-	pr_info(" entry %s line %d \n", __func__, __LINE__);
+	pr_debug(" entry %s line %d \n", __func__, __LINE__);
 	schedule_work(&fp_freq_work);
 }
 
@@ -317,7 +317,7 @@ static int freq_hold(int sec)
 		freq_to_set[i].max = -1;
 	}
 	if (atomic_read(&boosted) == 0) {
-		pr_info( "%s for %d * 500 msec \n", __func__, sec);
+		pr_debug( "%s for %d * 500 msec \n", __func__, sec);
 		update_userlimit_cpu_freq(CPU_KIR_FP, cluster_num, freq_to_set);
 		atomic_inc(&boosted);
 		release_timer.expires = jiffies + (HZ / 2) * sec;
@@ -332,19 +332,19 @@ static ssize_t performance_store(struct device *dev,
 				 size_t count)
 {
 	if (!strncmp(buf, "1", count)) {
-		pr_info("finger down in authentication/enroll\n");
+		pr_debug("finger down in authentication/enroll\n");
 		freq_hold(1);
 
 	} else if (!strncmp(buf, "0", 1)) {
-		pr_info("finger up in authentication/enroll\n");
+		pr_debug("finger up in authentication/enroll\n");
 	} else {
 		int timeout;
 		if (kstrtoint(buf, 10, &timeout) == 0) {
 			freq_hold(timeout);
-			pr_info( "hold performance lock for %d * 500ms\n", timeout);
+			pr_debug( "hold performance lock for %d * 500ms\n", timeout);
 		} else {
 			freq_hold(1);
-			pr_info("hold performance lock for 500ms\n");
+			pr_debug("hold performance lock for 500ms\n");
 		}
 	}
 	return count;
@@ -440,7 +440,7 @@ static int check_hwid(struct spi_device *spi)
 
 	do {
 		spi_read_hwid(spi, tmp_buf);
-		pr_info("%s, fpc1520 chip version is 0x%x, 0x%x\n",
+		pr_debug("%s, fpc1520 chip version is 0x%x, 0x%x\n",
 		       __func__, tmp_buf[0], tmp_buf[1]);
 
 		time_out++;
@@ -461,13 +461,13 @@ static int check_hwid(struct spi_device *spi)
 		}
 
 		if (!error) {
-			pr_info("fpc %s, fpc1022 chip version check pass, time_out=%d\n",
+			pr_debug("fpc %s, fpc1022 chip version check pass, time_out=%d\n",
 			       __func__, time_out);
 			return 0;
 		}
 	} while (time_out < 2);
 
-	pr_info("%s, fpc1022 chip version read failed, time_out=%d\n",
+	pr_debug("%s, fpc1022 chip version read failed, time_out=%d\n",
 	       __func__, time_out);
 	spi_fingerprint = spi;
 	return -1;
@@ -481,7 +481,7 @@ static int proc_show_ver(struct seq_file *file,void *v)
 
 static int proc_open(struct inode *inode,struct file *file)
 {
-	pr_info("fpc proc_open\n");
+	pr_debug("fpc proc_open\n");
 	single_open(file,proc_show_ver,NULL);
 	return 0;
 }
@@ -498,7 +498,7 @@ static int fpc_power_supply(struct fpc_data *fpc)
 {
 	int ret = 0;
 	struct device *dev = &fpc->spidev->dev;
-	pr_info("fp Power init start");
+	pr_debug("fp Power init start");
 	// dev:i2c client device or spi slave device
 
 	ldoreg = regulator_get(dev, "VFP");
@@ -516,7 +516,7 @@ static int fpc_power_supply(struct fpc_data *fpc)
 	if (ret)
 		pr_err("regulator_enable(%d) failed!\n", ret);
 	
-	pr_info("fp Power init OK");
+	pr_debug("fp Power init OK");
 	return ret;
 }
 
@@ -590,7 +590,7 @@ static int mtk6765_probe(struct spi_device *spidev)
 			rc = -EINVAL;
 			goto exit;
 		}
-		dev_info(dev, "found pin control %s\n", n);
+		dev_dbg(dev, "found pin control %s\n", n);
 		fpc->pinctrl_state[i] = state;
 	}
 
@@ -607,7 +607,7 @@ static int mtk6765_probe(struct spi_device *spidev)
 	
 	fpc_sensor_exit = check_hwid(spidev);
 	if (fpc_sensor_exit < 0) {
-			pr_notice("%s: %d get chipid fail. now exit\n",
+			pr_err("%s: %d get chipid fail. now exit\n",
 				  __func__, __LINE__);
 			devm_pinctrl_put(fpc->pinctrl_fpc);
 			gpio_free(fpc->rst_gpio);
@@ -715,7 +715,7 @@ static int __init fpc_sensor_init(void)
 
 	status = spi_register_driver(&mtk6765_driver);
 	if (status < 0) {
-		pr_info("%s, fpc_sensor_init failed.\n", __func__);
+		pr_debug("%s, fpc_sensor_init failed.\n", __func__);
 	}
 
 	return status;

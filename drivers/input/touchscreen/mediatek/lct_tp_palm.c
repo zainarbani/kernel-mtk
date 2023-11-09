@@ -30,8 +30,8 @@
 #define TP_PALM_TAG           "LCT_TP_PALM"
 
 #ifdef TP_PALM_LOG_ENABLE
-#define TP_LOGW(log, ...) printk(KERN_WARNING "[%s] %s (line %d): " log, TP_PALM_TAG, __func__, __LINE__, ##__VA_ARGS__)
-#define TP_LOGE(log, ...) printk(KERN_ERR "[%s] %s ERROR (line %d): " log, TP_PALM_TAG, __func__, __LINE__, ##__VA_ARGS__)
+#define TP_LOGW(log, ...) pr_debug(KERN_WARNING "[%s] %s (line %d): " log, TP_PALM_TAG, __func__, __LINE__, ##__VA_ARGS__)
+#define TP_LOGE(log, ...) pr_err(KERN_ERR "[%s] %s ERROR (line %d): " log, TP_PALM_TAG, __func__, __LINE__, ##__VA_ARGS__)
 #else
 #define TP_LOGW(log, ...) {}
 #define TP_LOGE(log, ...) {}
