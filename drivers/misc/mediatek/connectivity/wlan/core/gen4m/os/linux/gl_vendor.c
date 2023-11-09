@@ -1359,7 +1359,7 @@ int mtk_cfg80211_vendor_llstats_get_info(struct wiphy *wiphy,
 
 		src = prAdapter->pucLinkStatsSrcBufferAddr;
 		if (!src) {
-			DBGLOG(REQ, ERROR, "EMI mapping not done");
+			//DBGLOG(REQ, ERROR, "EMI mapping not done");
 			rStatus = -EFAULT;
 			break;
 		}
