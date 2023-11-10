@@ -91,14 +91,12 @@ int aee_dump_stack_top_binary(char *buf, int buf_len, unsigned long bottom,
 		return -1;
 	if (!((bottom >= (PAGE_OFFSET + THREAD_SIZE)) &&
 	      (bottom <= (PAGE_OFFSET + get_linear_memory_size())))) {
-		if (!((bottom >= VMALLOC_START) && (bottom <= VMALLOC_END)))
-			return -2;
+		return -2;
 	}
 
 	if (!((top >= (PAGE_OFFSET + THREAD_SIZE)) &&
 	      (top <= (PAGE_OFFSET + get_linear_memory_size())))) {
-		if (!((top >= VMALLOC_START) && (top <= VMALLOC_END)))
-			return -3;
+		return -3;
 	}
 
 	if (top > ALIGN(bottom, THREAD_SIZE))
