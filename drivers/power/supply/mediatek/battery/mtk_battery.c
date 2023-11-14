@@ -488,7 +488,7 @@ static int bms_get_property(struct power_supply *psy,
 		val->intval = 140000;
 		break;
 	case POWER_SUPPLY_PROP_BATTERY_TYPE:
-		pr_info("gm.battery_id :%d.\n", gm.battery_id);
+		pr_debug("gm.battery_id :%d.\n", gm.battery_id);
 		switch (gm.battery_id) {
 		/*2020.12.29 longcheer jiangshitian edit for P1 bat id/type check start*/
 		case 0:

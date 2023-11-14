@@ -645,22 +645,22 @@ static SIMPLE_DEV_PM_OPS(prop_chgalgo_class_pm_ops,
 
 static int __init pca_class_init(void)
 {
-	pr_info("%s (%s)\n", __func__, PROP_CHGALGO_CLASS_VERSION);
+	pr_debug("%s (%s)\n", __func__, PROP_CHGALGO_CLASS_VERSION);
 
 	pca_class = class_create(THIS_MODULE, "prop_chgalgo_class");
 	if (IS_ERR(pca_class)) {
-		pr_info("%s fail(%ld)\n", __func__, PTR_ERR(pca_class));
+		pr_debug("%s fail(%ld)\n", __func__, PTR_ERR(pca_class));
 		return PTR_ERR(pca_class);
 	}
 	pca_class->dev_groups = pca_device_groups;
 	pca_class->pm = &prop_chgalgo_class_pm_ops;
-	pr_info("%s successfully\n", __func__);
+	pr_debug("%s successfully\n", __func__);
 	return 0;
 }
 
 static void __exit pca_class_exit(void)
 {
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	class_destroy(pca_class);
 }
 

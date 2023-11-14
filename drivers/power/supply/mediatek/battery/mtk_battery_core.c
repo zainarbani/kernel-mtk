@@ -599,7 +599,7 @@ bool __attribute__ ((weak)) mt_usb_is_device(void)
 /* ============================================================ */
 static int __init early_parse_batt_profile_vendor_id(char *p)
 {
-	pr_info("get battery_id from cmdline : %c\n", *p);
+	pr_debug("get battery_id from cmdline : %c\n", *p);
 
 	if (p) {
 		if (!strcmp(p, "0"))
@@ -671,7 +671,7 @@ void fgauge_get_profile_id_for_maxim(void)
 	if (get_battery_id == false)
 		gm.battery_id = TOTAL_BATTERY_NUMBER - 2;
 
-	pr_info("fgauge_get_profile_id: gm.battery_id=%d.\n", gm.battery_id);
+	pr_debug("fgauge_get_profile_id: gm.battery_id=%d.\n", gm.battery_id);
 }
 #ifdef MTK_GET_BATTERY_ID_BY_AUXADC
 struct iio_channel *channel;
@@ -2687,7 +2687,7 @@ void fg_bat_plugout_int_handler_gm25(void)
 	bool is_bat_exist;
 
 	is_bat_exist = pmic_is_battery_exist();
-	pr_info("%s: bat_exist: %d\n", __func__, is_bat_exist);
+	pr_debug("%s: bat_exist: %d\n", __func__, is_bat_exist);
 
 	if (fg_interrupt_check() == false)
 		return;
@@ -3153,7 +3153,7 @@ static int sync_cycle_count(void)
 		gm.maxim_cycle_count = prop.intval;
 	}
 
-	pr_info("gm.cycle_count[%d] cycle_count[%d]\n",
+	pr_debug("gm.cycle_count[%d] cycle_count[%d]\n",
 			gm.cycle_count, cycle_count);
 
 	if (gm.cycle_count < cycle_count) {
@@ -3163,7 +3163,7 @@ static int sync_cycle_count(void)
 		power_supply_get_property(max_verify_psy,
 			POWER_SUPPLY_PROP_MAXIM_BATT_CYCLE_COUNT, &prop);
 		gm.maxim_cycle_count = (u16)prop.intval;
-		pr_info("cycle_count[%d], last cycle_count[%d], maxim dc_value[%d]\n",
+		pr_debug("cycle_count[%d], last cycle_count[%d], maxim dc_value[%d]\n",
 				cycle_count, gm.cycle_count, gm.maxim_cycle_count);
 		gm.cycle_count++;
 	}

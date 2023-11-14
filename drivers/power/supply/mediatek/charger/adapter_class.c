@@ -439,7 +439,7 @@ static ssize_t adapter_id_show(struct device *dev,
 		adapter_dev->ops->get_svid) {
 		adapter_dev->ops->get_svid(adapter_dev);
 	}
-	pr_info("%s: adapter_id is %08x\n", __func__, adapter_dev->adapter_id);
+	pr_debug("%s: adapter_id is %08x\n", __func__, adapter_dev->adapter_id);
 
 	return snprintf(buf, PAGE_SIZE, "%08x\n", adapter_dev->adapter_id);
 }
@@ -454,7 +454,7 @@ static ssize_t adapter_svid_show(struct device *dev,
 		adapter_dev->ops->get_svid) {
 		adapter_dev->ops->get_svid(adapter_dev);
 	}
-	pr_info("%s: adapter_svid is %04x\n",
+	pr_debug("%s: adapter_svid is %04x\n",
 			__func__, adapter_dev->adapter_svid);
 
 	return snprintf(buf, PAGE_SIZE, "%04x\n", adapter_dev->adapter_svid);
@@ -497,21 +497,21 @@ static ssize_t request_vdm_cmd_store(struct device *dev,
 
 	if (in_interrupt()) {
 		data = kmalloc(40, GFP_ATOMIC);
-		pr_info("%s: kmalloc atomic ok.\n", __func__);
+		pr_debug("%s: kmalloc atomic ok.\n", __func__);
 	} else {
 		data = kmalloc(40, GFP_KERNEL);
-		pr_info("%s: kmalloc kernel ok.\n", __func__);
+		pr_debug("%s: kmalloc kernel ok.\n", __func__);
 	}
 	memset(data, 0, 40);
 
 	ret = sscanf(buf, "%d,%s\n", &cmd, buffer);
-	pr_info("%s:cmd:%d, buffer:%s\n", __func__, cmd, buffer);
+	pr_debug("%s:cmd:%d, buffer:%s\n", __func__, cmd, buffer);
 
 	StringToHex(buffer, data, &count);
-	pr_info("%s:count = %d\n", __func__, count);
+	pr_debug("%s:count = %d\n", __func__, count);
 
 	for (i = 0; i < count; i++)
-		pr_info("%02x", data[i]);
+		pr_debug("%02x", data[i]);
 
 	if (adapter_dev != NULL && adapter_dev->ops != NULL &&
 	    adapter_dev->ops->request_vdm_cmd) {
@@ -578,7 +578,7 @@ static ssize_t verify_process_store(struct device *dev,
 
 	adapter_dev->verify_process = !!val;
 
-	pr_info("%s: batterysecret verify process :%d\n",
+	pr_debug("%s: batterysecret verify process :%d\n",
 		__func__, adapter_dev->verify_process);
 
 	if (adapter_dev != NULL && adapter_dev->ops != NULL && adapter_dev->ops->set_pd_verify_process) {
@@ -608,7 +608,7 @@ static ssize_t usbpd_verifed_store(struct device *dev,
 		adapter_dev->verifed = 0;
 		return -EINVAL;
 	}
-	pr_info("%s: batteryd set usbpd verifyed :%d\n", __func__, val);
+	pr_debug("%s: batteryd set usbpd verifyed :%d\n", __func__, val);
 	adapter_dev->verifed = !!val;
 
 	if (adapter_dev->verifed) {
@@ -639,7 +639,7 @@ static ssize_t current_pr_show(struct device *dev,
 		adapter_dev->ops->get_power_role) {
 		adapter_dev->ops->get_power_role(adapter_dev);
 	}
-	pr_info("%s: current_pr is %d\n", __func__, adapter_dev->role);
+	pr_debug("%s: current_pr is %d\n", __func__, adapter_dev->role);
 	if (adapter_dev->role == PD_ROLE_SINK_FOR_ADAPTER)
 		pr = "sink";
 	else if (adapter_dev->role == PD_ROLE_SOURCE_FOR_ADAPTER)

@@ -289,9 +289,9 @@ static void set_sched_affinity_to_current(void)
     ret = sched_setaffinity(CURRENT_DS28E16_TASK, cpumask_of(current_cpu));
     preempt_enable();
     if(ret) {
-        pr_info("Setting cpu affinity to current cpu failed(%ld) in %s.\n", ret, __func__);
+        pr_debug("Setting cpu affinity to current cpu failed(%ld) in %s.\n", ret, __func__);
     } else {
-        pr_info("Setting cpu affinity to current cpu(%d) in %s.\n", current_cpu, __func__);
+        pr_debug("Setting cpu affinity to current cpu(%d) in %s.\n", current_cpu, __func__);
     }
 }
 
@@ -303,9 +303,9 @@ static void set_sched_affinity_to_all(void)
     cpumask_setall(&dstp);
     ret = sched_setaffinity(CURRENT_DS28E16_TASK, &dstp);
     if(ret) {
-        pr_info("Setting cpu affinity to all valid cpus failed(%ld) in %s.\n", ret, __func__);
+        pr_debug("Setting cpu affinity to all valid cpus failed(%ld) in %s.\n", ret, __func__);
     } else {
-        pr_info("Setting cpu affinity to all valid cpus in %s.\n", __func__);
+        pr_debug("Setting cpu affinity to all valid cpus in %s.\n", __func__);
     }
 }
 
