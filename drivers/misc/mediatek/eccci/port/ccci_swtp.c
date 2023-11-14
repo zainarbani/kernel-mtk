@@ -312,7 +312,7 @@ int swtp_init(int md_id)
 		pr_err("swtp_init: input_register_device fail rc=%d\n", ret);
 		return -1;
 	}
-	pr_info("swtp_init: input_register_device success \n");		
+	pr_debug("swtp_init: input_register_device success \n");		
 
 	/* parameter check */
 	if (md_id < 0 || md_id >= SWTP_MAX_SUPPORT_MD) {
