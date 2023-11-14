@@ -93,7 +93,7 @@ void msg_show(const char *prefix, struct AE_Msg *msg)
 	const char *cmd_id = NULL;
 
 	if (msg == NULL) {
-		pr_info("%s: EMPTY msg\n", prefix);
+		pr_debug("%s: EMPTY msg\n", prefix);
 		return;
 	}
 
@@ -257,7 +257,7 @@ inline struct AE_Msg *msg_create(char **ppmsg, int extra_size)
 
 	*ppmsg = vzalloc(size);
 	if (*ppmsg == NULL) {
-		pr_info("%s : kzalloc() fail\n", __func__);
+		pr_debug("%s : kzalloc() fail\n", __func__);
 		return NULL;
 	}
 
@@ -284,7 +284,7 @@ static ssize_t msg_copy_to_user(const char *prefix, char *msg, char __user *buf,
 		memcpy(msg_tmp, msg,
 		((struct AE_Msg *)msg)->len + sizeof(struct AE_Msg));
 	} else {
-		pr_info("%s : kzalloc() fail!\n", __func__);
+		pr_debug("%s : kzalloc() fail!\n", __func__);
 		msg_tmp = msg;
 	}
 
@@ -300,7 +300,7 @@ static ssize_t msg_copy_to_user(const char *prefix, char *msg, char __user *buf,
 	}
 	/* TODO: semaphore */
 	if ((*f_pos + count) > len) {
-		pr_info("read size overflow, count=%zx, *f_pos=%llx\n",
+		pr_debug("read size overflow, count=%zx, *f_pos=%llx\n",
 				count, *f_pos);
 		count = len - *f_pos;
 		ret = -EFAULT;
@@ -308,7 +308,7 @@ static ssize_t msg_copy_to_user(const char *prefix, char *msg, char __user *buf,
 	}
 
 	if (copy_to_user(buf, msg_tmp + *f_pos, count)) {
-		pr_info("copy_to_user failed\n");
+		pr_debug("copy_to_user failed\n");
 		ret = -EFAULT;
 		goto out;
 	}
@@ -583,7 +583,7 @@ static int ke_gen_ind_msg(struct aee_oops *oops)
 		 *  Code should NEVER come here now!!!
 		 */
 
-		pr_info(
+		pr_debug(
 			"%s: BUG!!! More than one kernel message queued, AEE does not support concurrent KE dump\n"
 			, __func__);
 		aee_oops_free(oops);
@@ -637,7 +637,7 @@ static int ke_gen_ind_msg(struct aee_oops *oops)
 		 */
 		if (!wait_for_completion_timeout(&aed_ke_com,
 					msecs_to_jiffies(5 * 60 * 1000)))
-			pr_info("%s: TIMEOUT, not receive close event, skip\n",
+			pr_debug("%s: TIMEOUT, not receive close event, skip\n",
 					__func__);
 	}
 	return 0;
@@ -697,7 +697,7 @@ static void ke_worker(struct work_struct *work)
 
 	list_for_each_entry_safe(oops, n, &ke_queue.list, list) {
 		if (oops == NULL) {
-			pr_info("%s:Invalid aee_oops struct\n", __func__);
+			pr_debug("%s:Invalid aee_oops struct\n", __func__);
 			return;
 		}
 
@@ -834,7 +834,7 @@ static void ee_gen_detail_msg(void)
 				"== EXTERNAL EXCEPTION LOG ==\n%s\n",
 				(char *)eerec->ee_log);
 		if (l >= msgsize - n)
-			pr_info("ee_log may overflow! %d >= %d\n",
+			pr_debug("ee_log may overflow! %d >= %d\n",
 				l, msgsize - n);
 		n += min(l, msgsize - n);
 	} else {
@@ -967,7 +967,7 @@ static void ee_gen_ind_msg(struct aed_eerec *eerec)
 	} else {
 		/* should never come here, skip*/
 		spin_unlock_irqrestore(&aed_device_lock, flags);
-		pr_info("%s: More than one EE message queued\n", __func__);
+		pr_debug("%s: More than one EE message queued\n", __func__);
 		return;
 	}
 	spin_unlock_irqrestore(&aed_device_lock, flags);
@@ -986,7 +986,7 @@ static void ee_gen_ind_msg(struct aed_eerec *eerec)
 	wake_up(&aed_dev.eewait);
 	if (wait_for_completion_timeout(&aed_ee_com,
 					msecs_to_jiffies(5 * 60 * 1000)))
-		pr_info("%s: TIMEOUT, not receive close event, skip\n",
+		pr_debug("%s: TIMEOUT, not receive close event, skip\n",
 			__func__);
 }
 
@@ -1009,7 +1009,7 @@ static void ee_worker(struct work_struct *work)
 
 	list_for_each_entry_safe(eerec, tmp, &ee_queue.list, list) {
 		if (eerec == NULL) {
-			pr_info("%s:null eerec\n", __func__);
+			pr_debug("%s:null eerec\n", __func__);
 			return;
 		}
 
@@ -1123,7 +1123,7 @@ static ssize_t aed_ee_read(struct file *filp, char __user *buf,
 
 	down_read(&ee_rw_ops_sem);
 	if (aed_dev.eerec == NULL) {
-		pr_info("%s fail for invalid kerec\n", __func__);
+		pr_debug("%s fail for invalid kerec\n", __func__);
 		up_read(&ee_rw_ops_sem);
 		return 0;
 	}
@@ -1155,20 +1155,20 @@ static ssize_t aed_ee_write(struct file *filp, const char __user *buf,
 
 	/* the request must be an *struct AE_Msg buffer */
 	if (count != sizeof(struct AE_Msg)) {
-		pr_info("%s: ERR, aed_write count=%zx\n", __func__, count);
+		pr_debug("%s: ERR, aed_write count=%zx\n", __func__, count);
 		up_write(&ee_rw_ops_sem);
 		return -1;
 	}
 
 	if (!buf) {
-		pr_info("%s: ERR, aed_write buf=NULL\n", __func__);
+		pr_debug("%s: ERR, aed_write buf=NULL\n", __func__);
 		up_write(&ee_rw_ops_sem);
 		return -1;
 	}
 
 	rsize = copy_from_user(&msg, buf, count);
 	if (rsize != 0) {
-		pr_info("%s: ERR, copy_from_user rsize=%d\n", __func__, rsize);
+		pr_debug("%s: ERR, copy_from_user rsize=%d\n", __func__, rsize);
 		up_write(&ee_rw_ops_sem);
 		return -1;
 	}
@@ -1203,7 +1203,7 @@ static ssize_t aed_ee_write(struct file *filp, const char __user *buf,
 			ee_gen_coredump_msg();
 			break;
 		default:
-			pr_info("Unknown command id %d\n", msg.cmdId);
+			pr_debug("Unknown command id %d\n", msg.cmdId);
 			ee_gen_notavail_msg();
 			break;
 		}
@@ -1384,20 +1384,20 @@ static ssize_t aed_ke_write(struct file *filp, const char __user *buf,
 
 	/* the request must be an * AE_Msg buffer */
 	if (count != sizeof(struct AE_Msg)) {
-		pr_info("ERR: aed_write count=%zx\n", count);
+		pr_debug("ERR: aed_write count=%zx\n", count);
 		up_write(&ke_rw_ops_sem);
 		return -1;
 	}
 
 	if (!buf) {
-		pr_info("ERR: aed_write buf=NULL\n");
+		pr_debug("ERR: aed_write buf=NULL\n");
 		up_write(&ke_rw_ops_sem);
 		return -1;
 	}
 
 	rsize = copy_from_user(&msg, buf, count);
 	if (rsize != 0) {
-		pr_info("copy_from_user rsize=%d\n", rsize);
+		pr_debug("copy_from_user rsize=%d\n", rsize);
 		up_write(&ke_rw_ops_sem);
 		return -1;
 	}
@@ -1668,7 +1668,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	int aee_force_exp_tmp = 0;
 
 	if (!arg && (cmd != AEEIOCTL_DAL_CLEAN)) {
-		pr_info("ERR: %s arg=NULL\n", __func__);
+		pr_debug("ERR: %s arg=NULL\n", __func__);
 		return -EINVAL;
 	}
 
@@ -1679,7 +1679,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case AEEIOCTL_SET_AEE_MODE:
 		{
 			if (strncmp(current->comm, "aee_aed", 7)) {
-				pr_info("unexpected user: %s", current->comm);
+				pr_debug("unexpected user: %s", current->comm);
 				goto EXIT;
 			}
 
@@ -1740,7 +1740,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 
 			if (aee_mode >= AEE_MODE_CUSTOMER_ENG) {
-				pr_info("DAL_SHOW not allowed (mode %d)\n",
+				pr_debug("DAL_SHOW not allowed (mode %d)\n",
 						aee_mode);
 				goto OUT;
 			}
@@ -1783,7 +1783,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			struct aee_dal_setcolor dal_setcolor;
 
 			if (aee_mode >= AEE_MODE_CUSTOMER_ENG) {
-				pr_info("SETCOLOR not allowed (mode %d)\n",
+				pr_debug("SETCOLOR not allowed (mode %d)\n",
 						aee_mode);
 				goto EXIT;
 			}
@@ -1862,7 +1862,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				put_task_stack(task);
 				put_task_struct(task);
 			} else {
-				pr_info(
+				pr_debug(
 				  "%s: get thread registers ioctl tid invalid\n"
 				  , __func__);
 				kfree(tmp);
@@ -1885,7 +1885,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		int copied;
 		struct mm_struct *raw_mm;
 
-		pr_info("Get direct unwind backtrace stack");
+		pr_debug("Get direct unwind backtrace stack");
 
 		if (copy_from_user((void *)(&stack_raw),
 			(struct unwind_info_stack __user *)arg,
@@ -1935,7 +1935,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		mmput(raw_mm);
 
 		if (end == 0) {
-			pr_info("Dump native stack failed:\n");
+			pr_debug("Dump native stack failed:\n");
 			ret = -EFAULT;
 			put_task_stack(task);
 			put_task_struct(task);
@@ -1959,7 +1959,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		put_task_stack(task);
 		put_task_struct(task);
 		if (copied != length) {
-			pr_info("Access stack error");
+			pr_debug("Access stack error");
 			vfree(stack);
 			ret = -EIO;
 			goto EXIT;
@@ -1994,7 +1994,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		int copied;
 		struct mm_struct *rms_mm;
 
-		pr_info("Get direct unwind backtrace info");
+		pr_debug("Get direct unwind backtrace info");
 
 		if (copy_from_user(&thread_info,
 			(struct unwind_info_rms  __user *)arg,
@@ -2103,7 +2103,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			vfree(maps);
 			thread_info.Userthread_mapsLength = mapsLength;
 			if (end == 0) {
-				pr_info("Dump native stack failed:\n");
+				pr_debug("Dump native stack failed:\n");
 				ret = -EFAULT;
 				put_task_stack(task);
 				put_task_struct(task);
@@ -2125,7 +2125,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			copied = access_process_vm(task, start,
 				stack, length, 0);
 			if (copied != length) {
-				pr_info("Access stack error");
+				pr_debug("Access stack error");
 				vfree(stack);
 				ret = -EIO;
 				put_task_stack(task);
@@ -2194,7 +2194,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				rcu_read_lock();
 				task = find_task_by_vpid(pid);
 				if (task == NULL) {
-					pr_info("%s: process:%d task null\n",
+					pr_debug("%s: process:%d task null\n",
 						__func__, pid);
 					rcu_read_unlock();
 					ret = -EINVAL;
@@ -2211,7 +2211,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 				t_mm = get_task_mm(task);
 				if (!t_mm) {
-					pr_info("%s: process:%d task mm null\n",
+					pr_debug("%s: process:%d task mm null\n",
 						__func__, pid);
 					put_task_stack(task);
 					put_task_struct(task);
@@ -2221,17 +2221,17 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 				dumpable = get_dumpable(t_mm);
 				if (dumpable == 0) {
-					pr_info("%s: set process:%d dumpable\n",
+					pr_debug("%s: set process:%d dumpable\n",
 						__func__, pid);
 					set_dumpable(t_mm, 1);
 				} else
-					pr_info("%s: get process:%d dumpable:%d\n",
+					pr_debug("%s: get process:%d dumpable:%d\n",
 						__func__, pid, dumpable);
 				mmput(t_mm);
 				put_task_stack(task);
 				put_task_struct(task);
 			} else {
-				pr_info(
+				pr_debug(
 				  "%s: check suid dumpable ioctl pid invalid\n",
 				  __func__);
 				ret = -EINVAL;
@@ -2305,7 +2305,7 @@ static long aed_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				put_task_stack(task);
 				put_task_struct(task);
 			} else {
-				pr_info("%s: get aee_siginfo ioctl tid invalid\n",
+				pr_debug("%s: get aee_siginfo ioctl tid invalid\n",
 						__func__);
 				ret = -EINVAL;
 				goto EXIT;
@@ -2466,7 +2466,7 @@ int DumpThreadNativeInfo(struct aee_oops *oops)
 	#endif
 	oops->userthread_maps.Userthread_mapsLength =
 		strlen(oops->userthread_maps.Userthread_maps);
-	pr_info("maps addr(0x%08lx), maps len:%d\n",
+	pr_debug("maps addr(0x%08lx), maps len:%d\n",
 		(long)oops->userthread_maps.Userthread_maps,
 		oops->userthread_maps.Userthread_mapsLength);
 
@@ -2485,7 +2485,7 @@ int DumpThreadNativeInfo(struct aee_oops *oops)
 			break;
 	}
 	if (userstack_end == 0) {
-		pr_info("Dump native stack failed:\n");
+		pr_debug("Dump native stack failed:\n");
 		return 0;
 	}
 	length = ((userstack_end - userstack_start) <
@@ -2494,7 +2494,7 @@ int DumpThreadNativeInfo(struct aee_oops *oops)
 	oops->userthread_stack.StackLength = length;
 
 	if (!userstack_start) {
-		pr_info("ERR: %s userstack_start = NULL\n", __func__);
+		pr_debug("ERR: %s userstack_start = NULL\n", __func__);
 		return 0;
 	}
 
@@ -2516,7 +2516,7 @@ int DumpThreadNativeInfo(struct aee_oops *oops)
 			break;
 	}
 	if (userstack_end == 0) {
-		pr_info("Dump native stack failed:\n");
+		pr_debug("Dump native stack failed:\n");
 		return 0;
 	}
 		length = ((userstack_end - userstack_start) <
@@ -2524,7 +2524,7 @@ int DumpThreadNativeInfo(struct aee_oops *oops)
 							(MaxStackSize-1);
 		oops->userthread_stack.StackLength = length;
 		if (!userstack_start) {
-			pr_info("ERR: %s userstack_start=NULL\n", __func__);
+			pr_debug("ERR: %s userstack_start=NULL\n", __func__);
 			return 0;
 		}
 		ret = copy_from_user(
@@ -2544,7 +2544,7 @@ int DumpThreadNativeInfo(struct aee_oops *oops)
 				break;
 		}
 		if (userstack_end == 0) {
-			pr_info("Dump native stack failed:\n");
+			pr_debug("Dump native stack failed:\n");
 			return 0;
 		}
 
@@ -2553,7 +2553,7 @@ int DumpThreadNativeInfo(struct aee_oops *oops)
 			(MaxStackSize-1);
 		oops->userthread_stack.StackLength = length;
 		if (!userstack_start) {
-			pr_info("ERR: %s userstack_start = NULL\n", __func__);
+			pr_debug("ERR: %s userstack_start = NULL\n", __func__);
 			return 0;
 		}
 		ret = copy_from_user(
@@ -2608,7 +2608,7 @@ static void kernel_reportAPI(const enum AE_DEFECT_ATTR attr, const int db_opt,
 			oops->userthread_stack.Userthread_Stack =
 							vzalloc(MaxStackSize);
 			if (oops->userthread_stack.Userthread_Stack == NULL) {
-				pr_info(
+				pr_debug(
 				  "%s: oops->userthread_stack.Userthread_Stack Vmalloc fail"
 				  , __func__);
 				kfree(oops);
@@ -2617,7 +2617,7 @@ static void kernel_reportAPI(const enum AE_DEFECT_ATTR attr, const int db_opt,
 			oops->userthread_maps.Userthread_maps =
 							vzalloc(MaxMapsSize);
 			if (oops->userthread_maps.Userthread_maps == NULL) {
-				pr_info(
+				pr_debug(
 				  "%s: oops->userthread_maps.Userthread_maps Vmalloc fail"
 				  , __func__);
 				vfree(oops->userthread_stack.Userthread_Stack);
@@ -2679,7 +2679,7 @@ static void external_exception(const char *assert_type, const int *log,
 	}
 
 	if (ee_log == NULL) {
-		pr_info("%s : memory alloc() fail\n", __func__);
+		pr_debug("%s : memory alloc() fail\n", __func__);
 		kfree(eerec);
 		return;
 	}
@@ -2710,11 +2710,11 @@ static void external_exception(const char *assert_type, const int *log,
 	/* Check if we can dump memory */
 	if (in_interrupt()) {
 		/* kernel vamlloc cannot be used in interrupt context */
-		pr_info(
+		pr_debug(
 		  "External exception occur in interrupt context, no coredump");
 		phy_size = 0;
 	} else if ((phy == NULL) || (phy_size > MAX_EE_COREDUMP)) {
-		pr_info("EE Physical memory size(%d) too large or invalid",
+		pr_debug("EE Physical memory size(%d) too large or invalid",
 				phy_size);
 		phy_size = 0;
 	}
@@ -2725,7 +2725,7 @@ static void external_exception(const char *assert_type, const int *log,
 			memcpy(eerec->ee_phy, phy, phy_size);
 			eerec->ee_phy_size = phy_size;
 		} else {
-			pr_info("Losing ee phy mem due to vmalloc return NULL\n");
+			pr_debug("Losing ee phy mem due to vmalloc return NULL\n");
 			eerec->ee_phy_size = 0;
 		}
 	} else {
@@ -2793,7 +2793,7 @@ static int aed_proc_init(void)
 {
 	aed_proc_dir = proc_mkdir("aed", NULL);
 	if (aed_proc_dir == NULL) {
-		pr_info("aed proc_mkdir failed\n");
+		pr_debug("aed proc_mkdir failed\n");
 		return -ENOMEM;
 	}
 	/* 0400: S_IRUSR */
@@ -2880,7 +2880,7 @@ static int __init aed_init(void)
 	int err = 0;
 
 	if (!aee_is_enable()) {
-		pr_info("%s: aee is disable\n", __func__);
+		pr_debug("%s: aee is disable\n", __func__);
 		return 0;
 	}
 
@@ -2909,13 +2909,13 @@ static int __init aed_init(void)
 	spin_lock_init(&aed_device_lock);
 	err = misc_register(&aed_ee_dev);
 	if (unlikely(err)) {
-		pr_info("aee: failed to register aed0(ee) device!\n");
+		pr_debug("aee: failed to register aed0(ee) device!\n");
 		return err;
 	}
 
 	err = misc_register(&aed_ke_dev);
 	if (unlikely(err)) {
-		pr_info("aee: failed to register aed1(ke) device!\n");
+		pr_debug("aee: failed to register aed1(ke) device!\n");
 		return err;
 	}
 

@@ -132,7 +132,7 @@ int __init mrdump_full_init(void)
 		return -ENOMEM;
 	}
 #endif
-	pr_info("%s: MT-RAMDUMP enabled done\n", __func__);
+	pr_debug("%s: MT-RAMDUMP enabled done\n", __func__);
 	return 0;
 }
 

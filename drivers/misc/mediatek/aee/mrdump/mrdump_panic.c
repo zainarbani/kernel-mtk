@@ -467,7 +467,7 @@ static const char *get_timestamp_string(char *buf, int bufsize)
 	n = snprintf(buf, bufsize, "[%5lu.%06lu]",
 		       (unsigned long)ts, rem_nsec / 1000);
 	if (n < 0 || n >= bufsize) {
-		pr_info("print time failed\n");
+		pr_debug("print time failed\n");
 		*buf = '\0';
 	}
 	return buf;
