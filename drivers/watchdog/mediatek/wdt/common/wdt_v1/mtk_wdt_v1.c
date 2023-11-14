@@ -157,7 +157,7 @@ static void toprgu_register_reset_controller(struct device_node *np,
 
 	ret = reset_controller_register(&data->rcdev);
 	if (ret) {
-		pr_info("could not register toprgu reset controller: %d\n",
+		pr_debug("could not register toprgu reset controller: %d\n",
 			 ret);
 		kfree(data);
 		return;
@@ -302,19 +302,19 @@ void mtk_wdt_restart(enum wd_restart_type type)
 
 void wdt_dump_reg(void)
 {
-	pr_info("****************dump wdt reg start*************\n");
-	pr_info("MTK_WDT_MODE:0x%x\n", __raw_readl(MTK_WDT_MODE));
-	pr_info("MTK_WDT_LENGTH:0x%x\n", __raw_readl(MTK_WDT_LENGTH));
-	pr_info("MTK_WDT_RESTART:0x%x\n", __raw_readl(MTK_WDT_RESTART));
-	pr_info("MTK_WDT_STATUS:0x%x\n", __raw_readl(MTK_WDT_STATUS));
-	pr_info("MTK_WDT_INTERVAL:0x%x\n", __raw_readl(MTK_WDT_INTERVAL));
-	pr_info("MTK_WDT_SWRST:0x%x\n", __raw_readl(MTK_WDT_SWRST));
-	pr_info("MTK_WDT_NONRST_REG:0x%x\n", __raw_readl(MTK_WDT_NONRST_REG));
-	pr_info("MTK_WDT_NONRST_REG2:0x%x\n", __raw_readl(MTK_WDT_NONRST_REG2));
-	pr_info("MTK_WDT_REQ_MODE:0x%x\n", __raw_readl(MTK_WDT_REQ_MODE));
-	pr_info("MTK_WDT_REQ_IRQ_EN:0x%x\n", __raw_readl(MTK_WDT_REQ_IRQ_EN));
-	pr_info("MTK_WDT_DRAMC_CTL:0x%x\n", __raw_readl(MTK_WDT_DRAMC_CTL));
-	pr_info("****************dump wdt reg end*************\n");
+	pr_debug("****************dump wdt reg start*************\n");
+	pr_debug("MTK_WDT_MODE:0x%x\n", __raw_readl(MTK_WDT_MODE));
+	pr_debug("MTK_WDT_LENGTH:0x%x\n", __raw_readl(MTK_WDT_LENGTH));
+	pr_debug("MTK_WDT_RESTART:0x%x\n", __raw_readl(MTK_WDT_RESTART));
+	pr_debug("MTK_WDT_STATUS:0x%x\n", __raw_readl(MTK_WDT_STATUS));
+	pr_debug("MTK_WDT_INTERVAL:0x%x\n", __raw_readl(MTK_WDT_INTERVAL));
+	pr_debug("MTK_WDT_SWRST:0x%x\n", __raw_readl(MTK_WDT_SWRST));
+	pr_debug("MTK_WDT_NONRST_REG:0x%x\n", __raw_readl(MTK_WDT_NONRST_REG));
+	pr_debug("MTK_WDT_NONRST_REG2:0x%x\n", __raw_readl(MTK_WDT_NONRST_REG2));
+	pr_debug("MTK_WDT_REQ_MODE:0x%x\n", __raw_readl(MTK_WDT_REQ_MODE));
+	pr_debug("MTK_WDT_REQ_IRQ_EN:0x%x\n", __raw_readl(MTK_WDT_REQ_IRQ_EN));
+	pr_debug("MTK_WDT_DRAMC_CTL:0x%x\n", __raw_readl(MTK_WDT_DRAMC_CTL));
+	pr_debug("****************dump wdt reg end*************\n");
 }
 
 void wdt_arch_reset(char mode)
@@ -335,7 +335,7 @@ void wdt_arch_reset(char mode)
 	if (!toprgu_base) {
 		toprgu_base = of_iomap(np_rgu, 0);
 		if (!toprgu_base)
-			pr_info("RGU iomap failed\n");
+			pr_debug("RGU iomap failed\n");
 		pr_debug("RGU base: 0x%p  RGU irq: %d\n", toprgu_base,
 			  wdt_irq_id);
 		}
@@ -372,7 +372,7 @@ void wdt_arch_reset(char mode)
 
 	while (1) {
 		wdt_dump_reg();
-		pr_info("%s error\n", __func__);
+		pr_debug("%s error\n", __func__);
 	}
 
 }
@@ -558,7 +558,7 @@ static void wdt_fiq(void *arg, void *regs, void *svc_sp)
 #else				/* CONFIG_FIQ_GLUE */
 static irqreturn_t mtk_wdt_isr(int irq, void *dev_id)
 {
-	pr_info("fwq %s\n", __func__);
+	pr_debug("fwq %s\n", __func__);
 #ifndef __USING_DUMMY_WDT_DRV__	/* FPGA will set this flag */
 
 	wdt_report_info();
@@ -580,14 +580,14 @@ static int mtk_wdt_probe(struct platform_device *dev)
 	if (!toprgu_base) {
 		toprgu_base = of_iomap(dev->dev.of_node, 0);
 		if (!toprgu_base) {
-			pr_info("RGU iomap failed\n");
+			pr_debug("RGU iomap failed\n");
 			return -ENODEV;
 		}
 	}
 	if (!wdt_irq_id) {
 		wdt_irq_id = irq_of_parse_and_map(dev->dev.of_node, 0);
 		if (!wdt_irq_id) {
-			pr_info("RGU get IRQ ID failed\n");
+			pr_debug("RGU get IRQ ID failed\n");
 			return -ENODEV;
 		}
 	}
@@ -595,18 +595,18 @@ static int mtk_wdt_probe(struct platform_device *dev)
 
 #ifndef __USING_DUMMY_WDT_DRV__	/* FPGA will set this flag */
 #ifndef CONFIG_FIQ_GLUE
-	pr_info("*** MTK WDT register irq ***\n");
+	pr_debug("*** MTK WDT register irq ***\n");
 	ret = request_irq(AP_RGU_WDT_IRQ_ID, (irq_handler_t)mtk_wdt_isr,
 			  IRQF_TRIGGER_NONE, DRV_NAME, NULL);
 #else
 	wdt_irq_id = get_hardware_irq(wdt_irq_id);
-	pr_info("*** MTK WDT register fiq: fiq number is %d ***\n", wdt_irq_id);
+	pr_debug("*** MTK WDT register fiq: fiq number is %d ***\n", wdt_irq_id);
 	ret = request_fiq(AP_RGU_WDT_IRQ_ID, wdt_fiq,
 			    IRQF_TRIGGER_FALLING, NULL);
 #endif
 
 	if (ret != 0) {
-		pr_info("%s : failed to request irq (%d)\n", __func__, ret);
+		pr_debug("%s : failed to request irq (%d)\n", __func__, ret);
 		return ret;
 	}
 	pr_debug("%s : Success to request irq\n", __func__);
@@ -741,7 +741,7 @@ static int __init mtk_wdt_get_base_addr(void)
 	if (!toprgu_base) {
 		toprgu_base = of_iomap(np_rgu, 0);
 		if (!toprgu_base)
-			pr_info("RGU iomap failed\n");
+			pr_debug("RGU iomap failed\n");
 
 		pr_debug("RGU base: 0x%p\n", toprgu_base);
 	}
