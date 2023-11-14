@@ -56,7 +56,7 @@ static struct scp_elliptic_reserved_mem_t debug_segment;
 int32_t elliptic_debug_io_open(void)
 {
 
-    pr_info("[ELUS] %s()", __func__);
+    pr_debug("[ELUS] %s()", __func__);
     if (debug_segment.reserved == 0) {
         debug_segment.phys =
             scp_get_reserve_mem_phys(SCP_ELLIPTIC_DEBUG_MEM);
@@ -66,7 +66,7 @@ int32_t elliptic_debug_io_open(void)
             scp_get_reserve_mem_size(SCP_ELLIPTIC_DEBUG_MEM);
         debug_segment.reserved = 1;
     }
-    pr_info("[ELUS] %s(), debug_segment.phys: %llu, debug_segment.virt: %llu", __func__, debug_segment.phys, debug_segment.virt);
+    pr_debug("[ELUS] %s(), debug_segment.phys: %llu, debug_segment.virt: %llu", __func__, debug_segment.phys, debug_segment.virt);
     return elliptic_data_io_write(ELLIPTIC_INIT_DEBUG_SEGMENT,
                 (const char *)&debug_segment,
                 sizeof(debug_segment));
@@ -74,7 +74,7 @@ int32_t elliptic_debug_io_open(void)
 
 int32_t elliptic_debug_io_close(void)
 {
-    pr_info("[ELUS] %s()", __func__);
+    pr_debug("[ELUS] %s()", __func__);
     return 0;
 }
 
@@ -86,7 +86,7 @@ static void copy_to_local_ap_cache(
         struct elliptic_shared_data_block *data_block =
             elliptic_get_shared_obj(shared_object_id);
         memcpy(data_block->buffer, payload, shared_object_size);
-        pr_info("[ELUS] %s copied to local AP cache, size: %u",
+        pr_debug("[ELUS] %s copied to local AP cache, size: %u",
                    name, msg_header->data_size);
     } else {
         pr_debug("[ELUS] %s - illegal size: %u",
@@ -124,11 +124,11 @@ void elliptic_data_io_ipi_handler(
 
     void *payload = NULL;
 
-//pr_info( "[ELUS] current_ipi_counter: %u, target_ipi_message_count:%u",current_ipi_counter,target_ipi_message_count );
+//pr_debug( "[ELUS] current_ipi_counter: %u, target_ipi_message_count:%u",current_ipi_counter,target_ipi_message_count );
 //    if (target_ipi_message_count - current_ipi_counter > ELLIPTIC_DRAM_PAYLOAD_MAX_OFFSET)
       if ( (uint16_t) (target_ipi_message_count - current_ipi_counter) > ELLIPTIC_DRAM_PAYLOAD_MAX_OFFSET)
     {
-        pr_info("[ELUS] Offset mismatch between SCP and AP kernel, current_ipi_counter: %u, target_ipi_message_count: %u!\n",
+        pr_debug("[ELUS] Offset mismatch between SCP and AP kernel, current_ipi_counter: %u, target_ipi_message_count: %u!\n",
                 current_ipi_counter, target_ipi_message_count);
         current_ipi_counter = target_ipi_message_count - ELLIPTIC_DRAM_PAYLOAD_MAX_OFFSET;
     }
@@ -140,14 +140,14 @@ void elliptic_data_io_ipi_handler(
         if( NULL != ( header = get_header( dram_payload, current_ipi_counter ) ) )
         {
             payload = header + 1;
-            pr_info( "[ELUS] Got data via dram payload, header: %p, payload: %p, counter: %u", header, payload, current_ipi_counter );
+            pr_debug( "[ELUS] Got data via dram payload, header: %p, payload: %p, counter: %u", header, payload, current_ipi_counter );
         }
         // if not in dram buffer, it might be a small message in the ipi buffer
         else if( current_ipi_counter == target_ipi_message_count )
         {
             header = &ipi_msg->header;
             payload = ipi_msg->data;
-            pr_info("[ELUS] Got data via ipi payload, addr: %p", payload);
+            pr_debug("[ELUS] Got data via ipi payload, addr: %p", payload);
         }
         else if( header == NULL )
         {
@@ -155,9 +155,9 @@ void elliptic_data_io_ipi_handler(
             pr_err( "[ELUS] did not find payload with id %u", (unsigned int)current_ipi_counter );
             continue;
         }
-        pr_info("[ELUS] dram_payload: %p ipi_msg: %p  current_ipi_counter: %u", dram_payload, ipi_msg ,current_ipi_counter);
+        pr_debug("[ELUS] dram_payload: %p ipi_msg: %p  current_ipi_counter: %u", dram_payload, ipi_msg ,current_ipi_counter);
 
-        //pr_info("[ELUS] header->parameter_id = %u len:%u",
+        //pr_debug("[ELUS] header->parameter_id = %u len:%u",
         //        header->parameter_id,
         //        header->data_size);
 
@@ -198,7 +198,7 @@ void elliptic_data_io_ipi_handler(
                            header, payload);
             break;
         case ELLIPTIC_ULTRASOUND_PARAM_ID_ENGINE_DATA:
-            pr_info("[ELUS] engine data push to device %u",
+            pr_debug("[ELUS] engine data push to device %u",
                     header->data_size);
             ret = elliptic_data_push(
                 ELLIPTIC_ALL_DEVICES,
@@ -284,7 +284,7 @@ int32_t elliptic_data_io_write(uint32_t message_id, const char *data,
 
 int elliptic_data_io_cleanup(void)
 {
-    pr_info("[ELUS] Unimplemented");
+    pr_debug("[ELUS] Unimplemented");
     return 0;
 }
 
