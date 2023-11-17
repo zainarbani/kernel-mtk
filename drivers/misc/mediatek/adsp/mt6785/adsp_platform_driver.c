@@ -90,9 +90,7 @@ int adsp_core0_init(struct adsp_priv *pdata)
 			      pdata);
 
 	/* logger */
-	pdata->log_ctrl = adsp_logger_init(ADSP_A_LOGGER_MEM_ID);
-	if (pdata->log_ctrl)
-		INIT_DELAYED_WORK(&pdata->log_ctrl->work, adsp_logger_init0_cb);
+	pdata->log_ctrl = adsp_logger_init(ADSP_A_LOGGER_MEM_ID, adsp_logger_init0_cb);
 
 	/* ipi */
 	adsp_ipi_init();
