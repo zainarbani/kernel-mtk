@@ -256,7 +256,7 @@ void _wake_up_charger(struct charger_manager *info)
 		__pm_stay_awake(&info->charger_wakelock);
 	spin_unlock_irqrestore(&info->slock, flags);
 	info->charger_thread_timeout = true;
-	wake_up(&info->wait_que);
+	wake_up_interruptible(&info->wait_que);
 }
 
 /* charger_manager ops  */
@@ -2674,6 +2674,7 @@ static void mtk_chg_get_tchg(struct charger_manager *info)
 	int ret;
 	int tchg_min = -127, tchg_max = -127;
 	struct charger_data *pdata;
+	bool en = false;
 
 	pdata = &info->chg1_data;
 	ret = charger_dev_get_temperature(info->chg1_dev, &tchg_min, &tchg_max);
@@ -2702,27 +2703,33 @@ static void mtk_chg_get_tchg(struct charger_manager *info)
 
 	if (info->dvchg1_dev) {
 		pdata = &info->dvchg1_data;
-		ret = charger_dev_get_adc(info->dvchg1_dev, ADC_CHANNEL_TEMP_JC,
-					  &tchg_min, &tchg_max);
-		if (ret < 0) {
-			pdata->junction_temp_min = -127;
-			pdata->junction_temp_max = -127;
-		} else {
-			pdata->junction_temp_min = tchg_min;
-			pdata->junction_temp_max = tchg_max;
+		pdata->junction_temp_min = -127;
+		pdata->junction_temp_max = -127;
+		ret = charger_dev_is_enabled(info->dvchg1_dev, &en);
+		if (ret >= 0 && en) {
+			ret = charger_dev_get_adc(info->dvchg1_dev,
+						  ADC_CHANNEL_TEMP_JC,
+						  &tchg_min, &tchg_max);
+			if (ret >= 0) {
+				pdata->junction_temp_min = tchg_min;
+				pdata->junction_temp_max = tchg_max;
+			}
 		}
 	}
 
 	if (info->dvchg2_dev) {
 		pdata = &info->dvchg2_data;
-		ret = charger_dev_get_adc(info->dvchg2_dev, ADC_CHANNEL_TEMP_JC,
-					  &tchg_min, &tchg_max);
-		if (ret < 0) {
-			pdata->junction_temp_min = -127;
-			pdata->junction_temp_max = -127;
-		} else {
-			pdata->junction_temp_min = tchg_min;
-			pdata->junction_temp_max = tchg_max;
+		pdata->junction_temp_min = -127;
+		pdata->junction_temp_max = -127;
+		ret = charger_dev_is_enabled(info->dvchg2_dev, &en);
+		if (ret >= 0 && en) {
+			ret = charger_dev_get_adc(info->dvchg2_dev,
+						  ADC_CHANNEL_TEMP_JC,
+						  &tchg_min, &tchg_max);
+			if (ret >= 0) {
+				pdata->junction_temp_min = tchg_min;
+				pdata->junction_temp_max = tchg_max;
+			}
 		}
 	}
 }
@@ -2982,10 +2989,15 @@ static int charger_routine_thread(void *arg)
 	unsigned long flags = 0;
 	bool is_charger_on = false;
 	int bat_current = 0, chg_current = 0;
+	int ret;
 
 	while (1) {
-		wait_event(info->wait_que,
+		ret = wait_event_interruptible(info->wait_que,
 			(info->charger_thread_timeout == true));
+		if (ret < 0) {
+			chr_err("%s: wait event been interrupted(%d)\n", __func__, ret);
+			continue;
+		}
 
 		mutex_lock(&info->charger_lock);
 		spin_lock_irqsave(&info->slock, flags);
